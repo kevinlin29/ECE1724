@@ -1,57 +1,69 @@
 # RustRAGLab (RRL): A Rust Framework for RAG-Aware Fine-Tuning and Evaluation
 
 ## Motivation
-Large language models often rely on Retrieval-Augmented Generation (RAG) to connect to external knowledge sources, making them more capable and accurate in a specified domain. Currently there are not a single rust-native framework which supports the RAG workflow of a LLM from start to finish, and that is where this project comes in. Most existing tools are python based, such as LangChain, LlamaIndex, and Haystack, while rust developers are given fragemented codes which are not connect to form a standarized architecture. Thus meaning that there are no current tools which support the building of retrieval pipelines, fine-tuning adapters, and their correspoding evaluation tools.
+Retrieval-Augmented Generation (RAG) enhances large language models (LLMs) by connecting them to external knowledge sources, improving accuracy and grounding. However, there is currently **no Rust-native framework** that supports the entire RAG workflow from ingestion to evaluation.
 
-We are motivated to fill this gap by building RustRAGLab (RRL), which is designed to be a Rust-native framework to support the full life cycle of a RAG system, with the following key points in mind:
-1. Enables safe, performant, and low-overhead pipelines from Rust's core strength.
-2. Fills a real gap in the Rust Machine Learning environment
-3. Provides broth a CLI and APIs to lower barriers for developers that seeks to experiment with RAG outside of python
+Existing tools such as **LangChain**, **LlamaIndex**, and **Haystack** are Python-based, while Rust developers must piece together fragmented crates (e.g., `hnsw_rs`, `tantivy`, `candle`) without a standardized architecture.
 
-## Objective and Features
-### Objective:
-Design and implement a end-to-end Rust-native framework that integrates retrieval, adapter fine-tuning, and evaluation for RAG systems, offering both developer APIs and a CLI tool (rrl) for streamlined use.
+**RustRAGLab (RRL)** aims to fill this gap by providing a **unified, performant, and safe Rust framework** for building and evaluating RAG systems.
 
-Data & Chunking: PDF/Markdown loaders → text → chunkers (fixed, overlap, semantic).
+### Why Rust?
+Rust provides **memory safety**, **low runtime overhead**, and **predictable concurrency**, making it ideal for building high-performance retrieval and training pipelines without Python dependencies.
 
 ---
 
-### Features:
-- **Data & Chunking**
-  - **Flexible Loaders** – Support for multiple document types such as PDF, Markdown, and plain text.
-  - **Chunking Strategies** – Implement fixed-size, overlapping, and semantic based chunking methods to enable tunable trade-offs between retrieval accuracy and performance.
-  - **Pre-processing Pipeline** – Includes tokenization, stopword filtering, and optional sentence segmentation using rust-tokenizers or tiktoken-rs.
+## Objective
+Design and implement an **end-to-end Rust-native framework** that integrates retrieval, adapter fine-tuning, and evaluation for RAG systems—offering both developer APIs and a CLI tool (`rrl`) for streamlined workflows.
 
-- **Embeddings**
-  - Trait-based embedding interface.  
-  - Backends via `tch` (Torch bindings) and `onnxruntime`.  
-  - Hardware acceleration support for **CUDA** (NVIDIA GPUs) and **Metal** (Apple GPUs). 
-  
-- **Indexing & Retrieval**
-  - Dense retrieval using **HNSW** (`hnsw_rs`).  
-  - Sparse retrieval using **BM25** (`tantivy`).  
-  - Hybrid retriever that combines dense and sparse signals.  
+---
 
-- **Developer Interface**
-  - **CLI tools**
-    - `rrl ingest` → load and chunk documents
-    - `rrl embed`: generate and store embeddings
-    - `rrl train`: fine-tune adapter or retriever
-    - `rrl eval` : evaluate retrieval or generation pipeline
-    - `rrl serve`: launch Axum-based inference server with streaming responses and hot-reload for new documents.
-  - **Rust API / SDK** – For integration into other Rust ML projects, exposing modular traits (Embedder, Retriever, Trainer, Evaluator)
+## Key Features
 
-- **Evaluation**
-  - Retrieval metrics: Recall@k, Mean Reciprocal Rank (MRR).
-  - Generation metrics: Perplexity, Exact Match, F1, ROUGE-L.
-  - Attribution score: fraction of answers that explicitly cite retrieved documents.
+### 1. Data & Chunking
+- **Flexible Loaders** – Support PDF, Markdown, and plain text documents.
+- **Chunking Strategies** – Fixed-size, overlapping, and semantic-based methods to balance recall and efficiency.
+- **Preprocessing Pipeline** – Tokenization, stopword filtering, and optional sentence segmentation using `rust-tokenizers` or `tiktoken-rs`.
 
-- **Server & Dashboard**
-  - REST API via **Axum**, with streaming output for interactive inference.
-  - Index hot-reloading without downtime.
-  - Terminal UI with **ratatui** for visualizing retrieval stats and training progress.
+### 2. Embeddings
+- **Trait-based Embedder Interface** for modular backend integration.
+- **Backends** – `tch` (Torch bindings) and `onnxruntime`.
+- **Hardware Acceleration** – Support for **CUDA (NVIDIA)** and **Metal (Apple)** GPUs.
+- **Persistent Cache** – Store embeddings in SQLite with versioning and reproducibility manifests.
 
-## Architecture Design
+### 3. Indexing & Retrieval
+- **Dense Retrieval** – HNSW via `hnsw_rs`.
+- **Sparse Retrieval** – BM25 via `tantivy`.
+- **Hybrid Retriever** – Weighted fusion of dense and sparse signals for balanced performance.
+
+### 4. Fine-Tuning (RAG-Aware)
+- **LoRA / QLoRA Fine-Tuning** using **Candle** (CUDA + Metal backends).
+- **Grounding-Aware Loss** – Encourages responses that cite retrieved passages and penalizes hallucinations by aligning model attention with relevant chunks.
+- **Optional Contrastive Training** – Incorporate hard negatives to enhance retrieval–generation consistency.
+
+### 5. Evaluation
+- **Retrieval Metrics** – Recall@k, Mean Reciprocal Rank (MRR).
+- **Generation Metrics** – Perplexity, Exact Match (EM), F1, ROUGE-L.
+- **Attribution Metrics** – Support fraction (answers that cite retrieved docs) and citation precision/recall.
+
+### 6. Developer Interfaces
+- **CLI Commands**
+  - `rrl ingest` – load and chunk documents.
+  - `rrl embed` – compute embeddings and build indexes.
+  - `rrl train` – fine-tune LoRA adapters.
+  - `rrl eval` – evaluate retrieval/generation pipelines.
+  - `rrl serve` – launch Axum server with streaming responses and hot reload.
+- **Rust API / SDK**
+  - Modular traits: `Embedder`, `Retriever`, `Trainer`, `Evaluator`.
+  - Allows integration with other Rust-based ML systems.
+
+### 7. Server & Visualization
+- **REST API** via Axum with streaming generation.
+- **Hot-Reloadable Indexes** – update sources without downtime.
+- **Terminal Dashboard (ratatui)** – visualize retrieval stats, GPU utilization, latency trends, and training progress.
+
+---
+
+## Architecture Overview
             ┌─────────────────────────────┐
             │        Data Sources         │
             │  (PDF / Markdown / Text)    │
