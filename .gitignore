@@ -1,0 +1,28 @@
+# Rust build artifacts (workspace level)
+target
+
+# RRL project data directories
+/rrl/chunks/
+/rrl/embeddings/
+/rrl/index/
+/rrl/models/
+/rrl/data/
+/rrl/test_docs/
+/rrl/test_*/
+/rrl/target
+
+# Databases and binaries
+*.db
+*.bin
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
