@@ -6,7 +6,6 @@ use crate::embedding::{Embedder, Embedding, EmbeddingConfig, normalize_embedding
 use anyhow::Result;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use std::path::Path;
 use std::sync::Arc;
 
 #[cfg(feature = "onnx-backend")]

@@ -76,7 +76,7 @@ impl HnswRetriever {
         );
 
         // Create HNSW index
-        let mut hnsw: Hnsw<f32, DistCosine> = Hnsw::new(
+        let hnsw: Hnsw<f32, DistCosine> = Hnsw::new(
             config.max_connections,
             chunks.len(),
             config.max_layers as usize,

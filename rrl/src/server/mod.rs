@@ -5,4 +5,3 @@
 pub mod routes;
 
 // Re-exports
-pub use routes::*;

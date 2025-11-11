@@ -4,7 +4,7 @@ use super::app::{App, StageStatus, View};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Line, Span, Text},
+    text::{Line, Span},
     widgets::{
         Block, Borders, Gauge, List, ListItem, Paragraph, Tabs, Wrap,
     },
