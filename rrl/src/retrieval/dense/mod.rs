@@ -170,7 +170,7 @@ impl HnswRetriever {
         let mapping_path = index_dir.join("id_mapping.json");
         let mapping_json = fs::read_to_string(&mapping_path)
             .context("Failed to read id_mapping.json")?;
-        let id_to_chunk_id: HashMap<usize, String> = serde_json::from_str(&mapping_json)?;
+        let _id_to_chunk_id: HashMap<usize, String> = serde_json::from_str(&mapping_json)?;
 
         // Rebuild HNSW index from chunks
         // We need to re-embed all chunks to rebuild the index
@@ -195,7 +195,7 @@ impl HnswRetriever {
     }
 
     /// Set search quality parameter (ef: number of neighbors to explore)
-    pub fn set_search_ef(&mut self, ef: usize) {
+    pub fn set_search_ef(&mut self, _ef: usize) {
         self.hnsw.set_searching_mode(true);
         // Note: hnsw_rs doesn't expose set_ef directly,
         // but searching_mode enables better search quality

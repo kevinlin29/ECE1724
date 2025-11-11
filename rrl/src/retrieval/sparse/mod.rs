@@ -110,7 +110,7 @@ impl Bm25Retriever {
             content_field,
             chunk_id_field,
             chunks: chunks_map,
-            index_path: index_dir.to_path_buf(),
+            index_path: index_dir.to_path_buf(),  
             metadata,
         })
     }
@@ -155,7 +155,7 @@ impl Bm25Retriever {
         Ok(Self {
             index,
             reader,
-            schema,
+            schema, 
             content_field,
             chunk_id_field,
             chunks,

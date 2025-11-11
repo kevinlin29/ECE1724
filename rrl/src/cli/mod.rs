@@ -3,7 +3,7 @@
 //! Provides CLI commands for ingest, embed, train, eval, and serve.
 
 use crate::data::{Chunk, ChunkConfig, Chunker, MultiFormatLoader, OverlappingChunker};
-use crate::embedding::{create_embedder, Embedder, Embedding, EmbeddingCache, EmbeddingConfig};
+use crate::embedding::{create_embedder, Embedding, EmbeddingCache, EmbeddingConfig};
 use crate::retrieval::{Bm25Retriever, HnswConfig, HnswRetriever, HybridRetriever, Retriever};
 use anyhow::{Context, Result};
 use std::collections::HashMap;
