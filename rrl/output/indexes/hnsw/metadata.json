@@ -1,0 +1,6 @@
+{
+  "model_name": "token-embedder",
+  "dimension": 384,
+  "num_chunks": 4,
+  "created_at": "2025-11-11T03:05:07.949634900+00:00"
+}
