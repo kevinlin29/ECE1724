@@ -60,9 +60,9 @@ enum Commands {
         hardware: String,
     },
 
-    /// Fine-tune LoRA adapters
+    /// Fine-tune BERT models with LoRA adapters
     Train {
-        /// Training data path
+        /// Training data path (JSONL or CSV)
         #[arg(short, long)]
         data: String,
 
@@ -70,8 +70,8 @@ enum Commands {
         #[arg(short, long)]
         output: String,
 
-        /// Base model name or path
-        #[arg(short, long)]
+        /// Base model name or HuggingFace model ID
+        #[arg(short, long, default_value = "bert-base-uncased")]
         model: String,
 
         /// Number of epochs
@@ -79,8 +79,48 @@ enum Commands {
         epochs: usize,
 
         /// Learning rate
-        #[arg(long, default_value = "1e-4")]
+        #[arg(long, default_value = "5e-5")]
         learning_rate: f64,
+
+        /// Batch size
+        #[arg(long, default_value = "32")]
+        batch_size: usize,
+
+        /// LoRA rank (0 to disable LoRA)
+        #[arg(long, default_value = "8")]
+        lora_rank: usize,
+
+        /// LoRA alpha
+        #[arg(long, default_value = "16")]
+        lora_alpha: f32,
+
+        /// Device: auto, cpu, cuda, or metal
+        #[arg(long, default_value = "auto")]
+        device: String,
+
+        /// Maximum sequence length
+        #[arg(long, default_value = "512")]
+        max_seq_length: usize,
+
+        /// Gradient accumulation steps
+        #[arg(long, default_value = "1")]
+        gradient_accumulation: usize,
+
+        /// Warmup ratio (fraction of total steps)
+        #[arg(long, default_value = "0.1")]
+        warmup_ratio: f64,
+
+        /// Validation data path (optional)
+        #[arg(long)]
+        val_data: Option<String>,
+
+        /// Save checkpoint every N steps (0 to disable)
+        #[arg(long, default_value = "500")]
+        save_steps: usize,
+
+        /// Log every N steps
+        #[arg(long, default_value = "100")]
+        logging_steps: usize,
     },
 
     /// Build retrieval indexes from chunks and embeddings
@@ -137,9 +177,9 @@ enum Commands {
         backend: String,
     },
 
-    /// Evaluate retrieval/generation pipelines
+    /// Evaluate retrieval performance
     Eval {
-        /// Test data path
+        /// Test data path (JSONL with query and relevant docs)
         #[arg(short, long)]
         data: String,
 
@@ -147,13 +187,25 @@ enum Commands {
         #[arg(short, long)]
         index: String,
 
-        /// Model path (optional for retrieval-only eval)
-        #[arg(short, long)]
-        model: Option<String>,
+        /// Model name for embeddings
+        #[arg(short, long, default_value = "token-embedder")]
+        model: String,
 
-        /// Evaluation mode: retrieval, generation, or both
-        #[arg(long, default_value = "both")]
-        mode: String,
+        /// Backend: token, mock
+        #[arg(short, long, default_value = "token")]
+        backend: String,
+
+        /// Retriever type: hnsw, bm25, or hybrid
+        #[arg(short, long, default_value = "hybrid")]
+        retriever: String,
+
+        /// Top-K for retrieval
+        #[arg(short = 'k', long, default_value = "10")]
+        top_k: usize,
+
+        /// Output file for detailed results (optional)
+        #[arg(long)]
+        output: Option<String>,
     },
 
     /// Launch Axum server with streaming responses
@@ -169,6 +221,37 @@ enum Commands {
         /// Server address
         #[arg(long, default_value = "127.0.0.1:3000")]
         addr: String,
+    },
+
+    /// Evaluate multiple-choice accuracy on Recipe-MPR dataset
+    EvalMc {
+        /// Test data path (JSON file with query, options, answer)
+        #[arg(short, long)]
+        data: String,
+
+        /// Base model path or HuggingFace model ID
+        #[arg(short, long)]
+        model: String,
+
+        /// LoRA checkpoint path (optional, for fine-tuned model)
+        #[arg(long)]
+        checkpoint: Option<String>,
+
+        /// LoRA rank (must match checkpoint)
+        #[arg(long, default_value = "8")]
+        lora_rank: usize,
+
+        /// LoRA alpha (must match checkpoint)
+        #[arg(long, default_value = "16")]
+        lora_alpha: f32,
+
+        /// Device: auto, cpu, cuda, or metal
+        #[arg(long, default_value = "cpu")]
+        device: String,
+
+        /// Maximum sequence length
+        #[arg(long, default_value = "512")]
+        max_seq_length: usize,
     },
 
     /// Launch interactive TUI (Terminal User Interface)
@@ -237,28 +320,47 @@ async fn main() -> anyhow::Result<()> {
             model,
             epochs,
             learning_rate,
+            batch_size,
+            lora_rank,
+            lora_alpha,
+            device,
+            max_seq_length,
+            gradient_accumulation,
+            warmup_ratio,
+            val_data,
+            save_steps,
+            logging_steps,
         } => {
-            tracing::info!("Running train command");
-            tracing::info!("  Data: {}", data);
-            tracing::info!("  Output: {}", output);
-            tracing::info!("  Model: {}", model);
-            tracing::info!("  Epochs: {}", epochs);
-            tracing::info!("  Learning rate: {}", learning_rate);
-            println!("Train command not yet implemented");
+            cli::train(
+                data,
+                output,
+                model,
+                epochs,
+                learning_rate,
+                batch_size,
+                lora_rank,
+                lora_alpha,
+                device,
+                max_seq_length,
+                gradient_accumulation,
+                warmup_ratio,
+                val_data,
+                save_steps,
+                logging_steps,
+            )
+            .await?;
         }
 
         Commands::Eval {
             data,
             index,
             model,
-            mode,
+            backend,
+            retriever,
+            top_k,
+            output,
         } => {
-            tracing::info!("Running eval command");
-            tracing::info!("  Data: {}", data);
-            tracing::info!("  Index: {}", index);
-            tracing::info!("  Model: {:?}", model);
-            tracing::info!("  Mode: {}", mode);
-            println!("Eval command not yet implemented");
+            cli::eval(data, index, model, backend, retriever, top_k, output).await?;
         }
 
         Commands::Serve { index, model, addr } => {
@@ -267,6 +369,27 @@ async fn main() -> anyhow::Result<()> {
             tracing::info!("  Model: {}", model);
             tracing::info!("  Address: {}", addr);
             println!("Serve command not yet implemented");
+        }
+
+        Commands::EvalMc {
+            data,
+            model,
+            checkpoint,
+            lora_rank,
+            lora_alpha,
+            device,
+            max_seq_length,
+        } => {
+            cli::eval_mc(
+                data,
+                model,
+                checkpoint,
+                lora_rank,
+                lora_alpha,
+                device,
+                max_seq_length,
+            )
+            .await?;
         }
 
         Commands::Tui => {

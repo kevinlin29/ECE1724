@@ -4,6 +4,7 @@
 
 use crate::data::{Chunk, ChunkConfig, Chunker, MultiFormatLoader, OverlappingChunker};
 use crate::embedding::{create_embedder, Embedding, EmbeddingCache, EmbeddingConfig};
+use crate::evaluation::{QueryResult, RetrievalEvaluator};
 use crate::retrieval::{Bm25Retriever, HnswConfig, HnswRetriever, HybridRetriever, Retriever};
 use anyhow::{Context, Result};
 use std::collections::HashMap;
@@ -13,6 +14,14 @@ use std::sync::Arc;
 
 #[cfg(feature = "onnx-backend")]
 use crate::embedding::backends::create_onnx_embedder;
+
+#[cfg(feature = "training")]
+use crate::training::{
+    select_device, DatasetConfig, DevicePreference, LoraConfig, TrainingConfig, TrainingDataset,
+    load_bert_lora,
+};
+#[cfg(feature = "training")]
+use crate::training::models::TokenizerWrapper;
 
 /// Execute the ingest command
 pub async fn ingest(
@@ -454,4 +463,402 @@ pub async fn query(
     }
 
     Ok(())
+}
+
+/// Execute the train command - fine-tune a model
+#[allow(clippy::too_many_arguments)]
+pub async fn train(
+    data: String,
+    output: String,
+    model: String,
+    epochs: usize,
+    learning_rate: f64,
+    batch_size: usize,
+    lora_rank: usize,
+    lora_alpha: f32,
+    device: String,
+    max_seq_length: usize,
+    gradient_accumulation: usize,
+    warmup_ratio: f64,
+    val_data: Option<String>,
+    save_steps: usize,
+    logging_steps: usize,
+) -> Result<()> {
+    #[cfg(not(feature = "training"))]
+    {
+        let _ = (
+            data,
+            output,
+            model,
+            epochs,
+            learning_rate,
+            batch_size,
+            lora_rank,
+            lora_alpha,
+            device,
+            max_seq_length,
+            gradient_accumulation,
+            warmup_ratio,
+            val_data,
+            save_steps,
+            logging_steps,
+        );
+        anyhow::bail!(
+            "Training feature not enabled. Compile with: cargo build --features training"
+        );
+    }
+
+    #[cfg(feature = "training")]
+    {
+        tracing::info!("Starting fine-tuning pipeline with LoRA");
+        tracing::info!("  Data: {}", data);
+        tracing::info!("  Output: {}", output);
+        tracing::info!("  Model: {}", model);
+        tracing::info!("  Epochs: {}", epochs);
+        tracing::info!("  Learning rate: {}", learning_rate);
+        tracing::info!("  Batch size: {}", batch_size);
+        tracing::info!("  LoRA rank: {}", lora_rank);
+        tracing::info!("  LoRA alpha: {}", lora_alpha);
+        tracing::info!("  Device: {}", device);
+        tracing::info!("  Max sequence length: {}", max_seq_length);
+        tracing::info!("  Gradient accumulation: {}", gradient_accumulation);
+        tracing::info!("  Warmup ratio: {}", warmup_ratio);
+        tracing::info!("  Save steps: {}", save_steps);
+        tracing::info!("  Logging steps: {}", logging_steps);
+
+        // Create output directory
+        let output_path = Path::new(&output);
+        fs::create_dir_all(output_path)
+            .context(format!("Failed to create output directory: {}", output))?;
+
+        // Select device - parse device string (e.g., "cuda:0", "metal:1", "cpu", "auto")
+        let device_pref: DevicePreference = device.parse()?;
+        let candle_device = select_device(device_pref)?;
+        tracing::info!("Using device: {:?}", candle_device);
+
+        // Load training dataset
+        tracing::info!("Loading training data from: {}", data);
+        let dataset_config = DatasetConfig::default();
+        let train_dataset = TrainingDataset::load(&data, dataset_config.clone())?;
+        tracing::info!("Loaded {} training examples", train_dataset.len());
+
+        // Show dataset statistics
+        let stats = train_dataset.stats();
+        tracing::info!("Dataset stats: {}", stats);
+
+        // Load validation dataset if provided
+        let val_dataset = if let Some(ref val_path) = val_data {
+            tracing::info!("Loading validation data from: {}", val_path);
+            let val_ds = TrainingDataset::load(val_path, dataset_config)?;
+            tracing::info!("Loaded {} validation examples", val_ds.len());
+            Some(val_ds)
+        } else {
+            None
+        };
+
+        // Create training config
+        let training_config = TrainingConfig {
+            batch_size,
+            num_epochs: epochs,
+            learning_rate,
+            warmup_ratio,
+            gradient_accumulation_steps: gradient_accumulation,
+            save_steps,
+            logging_steps,
+            output_dir: output.clone(),
+            max_seq_length,
+            ..Default::default()
+        };
+
+        // Create trainer FIRST (it has the VarMap for trainable parameters)
+        let mut trainer = crate::training::Trainer::new(training_config, candle_device.clone());
+
+        // Create LoRA config
+        let lora_config = LoraConfig::new(lora_rank, lora_alpha);
+        tracing::info!(
+            "LoRA config: rank={}, alpha={}, scaling={}",
+            lora_config.rank,
+            lora_config.alpha,
+            lora_config.scaling()
+        );
+
+        // Load BERT model with LoRA using trainer's VarMap
+        // This registers LoRA parameters as trainable
+        tracing::info!("Loading BERT model with LoRA from: {}", model);
+        let lora_model = load_bert_lora(&model, &lora_config, trainer.var_map(), &candle_device)?;
+
+        tracing::info!(
+            "Model loaded: {} trainable params / ~{} total params ({:.4}%)",
+            lora_model.num_trainable_params(),
+            lora_model.num_total_params(),
+            lora_model.num_trainable_params() as f64 / lora_model.num_total_params() as f64 * 100.0
+        );
+
+        // Load tokenizer
+        tracing::info!("Loading tokenizer...");
+        let tokenizer = TokenizerWrapper::from_pretrained(&model)?
+            .with_max_length(max_seq_length);
+
+        // Train with progress callback
+        let result = trainer.train(
+            &lora_model,
+            &tokenizer,
+            &train_dataset,
+            val_dataset.as_ref(),
+            Some(Box::new(|metrics| {
+                println!(
+                    "Step {} | Epoch {} | Loss: {:.4} | LR: {:.2e}",
+                    metrics.global_step, metrics.epoch, metrics.train_loss, metrics.learning_rate
+                );
+            })),
+        )?;
+
+        println!("\n========================================");
+        println!("Training Complete!");
+        println!("========================================");
+        println!("  Final loss: {:.4}", result.metrics.train_loss);
+        println!("  Total steps: {}", result.metrics.global_step);
+        println!("  Epochs completed: {}", result.metrics.epoch);
+        println!("  Samples/sec: {:.1}", result.metrics.samples_per_second);
+        if let Some(path) = &result.checkpoint_path {
+            println!("  Final checkpoint: {}", path);
+        }
+        println!("  Output directory: {}", output);
+        println!("========================================");
+
+        Ok(())
+    }
+}
+
+/// Execute the eval command - evaluate retrieval performance
+#[allow(clippy::too_many_arguments)]
+pub async fn eval(
+    data: String,
+    index: String,
+    model: String,
+    backend: String,
+    retriever_type: String,
+    top_k: usize,
+    output: Option<String>,
+) -> Result<()> {
+    tracing::info!("Starting retrieval evaluation");
+    tracing::info!("  Test data: {}", data);
+    tracing::info!("  Index: {}", index);
+    tracing::info!("  Model: {}", model);
+    tracing::info!("  Backend: {}", backend);
+    tracing::info!("  Retriever: {}", retriever_type);
+    tracing::info!("  Top-K: {}", top_k);
+
+    // Load test data (JSONL format with query and relevant_docs fields)
+    let data_path = Path::new(&data);
+    if !data_path.exists() {
+        anyhow::bail!("Test data file not found: {}", data);
+    }
+
+    #[derive(serde::Deserialize)]
+    struct EvalExample {
+        query: String,
+        relevant_docs: Vec<String>,
+        #[serde(default)]
+        query_id: Option<String>,
+    }
+
+    let file_content = fs::read_to_string(data_path)?;
+    let examples: Vec<EvalExample> = file_content
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .enumerate()
+        .map(|(i, line)| {
+            let mut example: EvalExample =
+                serde_json::from_str(line).context(format!("Failed to parse line {}", i + 1))?;
+            if example.query_id.is_none() {
+                example.query_id = Some(format!("q{}", i + 1));
+            }
+            Ok(example)
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    tracing::info!("Loaded {} test examples", examples.len());
+
+    // Create embedder
+    let config = EmbeddingConfig {
+        model_name: model.clone(),
+        ..Default::default()
+    };
+    let embedder = create_embedder(&backend, config, 384)?;
+
+    // Load retriever
+    let index_path = Path::new(&index);
+    let retriever: Arc<dyn Retriever> = match retriever_type.as_str() {
+        "hnsw" => {
+            let hnsw_dir = index_path.join("hnsw");
+            Arc::new(HnswRetriever::load(&hnsw_dir, embedder)?)
+        }
+        "bm25" => {
+            let bm25_dir = index_path.join("bm25");
+            Arc::new(Bm25Retriever::load(&bm25_dir)?)
+        }
+        "hybrid" => {
+            let hnsw_dir = index_path.join("hnsw");
+            let bm25_dir = index_path.join("bm25");
+            let hnsw: Arc<dyn Retriever> = Arc::new(HnswRetriever::load(&hnsw_dir, embedder)?);
+            let bm25: Arc<dyn Retriever> = Arc::new(Bm25Retriever::load(&bm25_dir)?);
+            Arc::new(HybridRetriever::new(vec![hnsw, bm25]))
+        }
+        _ => anyhow::bail!("Unknown retriever type: {}", retriever_type),
+    };
+
+    // Run evaluation
+    tracing::info!("Running evaluation on {} queries...", examples.len());
+    let mut query_results = Vec::new();
+
+    for example in &examples {
+        let results = retriever.retrieve(&example.query, top_k)?;
+        let retrieved: Vec<String> = results.iter().map(|r| r.chunk_id.clone()).collect();
+
+        query_results.push(QueryResult::new(
+            example.query_id.as_ref().unwrap(),
+            retrieved,
+            example.relevant_docs.clone(),
+        ));
+    }
+
+    // Compute metrics
+    let evaluator = RetrievalEvaluator::with_k_values(vec![1, 5, 10, top_k]);
+    let metrics = evaluator.evaluate(&query_results);
+
+    // Display results
+    println!("\n{}", metrics);
+
+    // Save detailed results if output path provided
+    if let Some(output_path) = output {
+        #[derive(serde::Serialize)]
+        struct DetailedResult {
+            query_id: String,
+            query: String,
+            retrieved: Vec<String>,
+            relevant: Vec<String>,
+            recall_at_k: f64,
+            reciprocal_rank: f64,
+        }
+
+        let detailed: Vec<DetailedResult> = examples
+            .iter()
+            .zip(query_results.iter())
+            .map(|(ex, qr)| DetailedResult {
+                query_id: qr.query_id.clone(),
+                query: ex.query.clone(),
+                retrieved: qr.retrieved.clone(),
+                relevant: qr.relevant.iter().cloned().collect(),
+                recall_at_k: qr.recall_at_k(top_k),
+                reciprocal_rank: qr.reciprocal_rank(),
+            })
+            .collect();
+
+        let output_json = serde_json::to_string_pretty(&detailed)?;
+        fs::write(&output_path, output_json)?;
+        tracing::info!("Saved detailed results to: {}", output_path);
+    }
+
+    println!("\nEvaluation Summary:");
+    println!("  Queries evaluated: {}", metrics.num_queries);
+    println!("  MRR: {:.4}", metrics.mrr);
+    println!("  MAP: {:.4}", metrics.map);
+    println!("  Hit Rate: {:.4}", metrics.hit_rate);
+
+    Ok(())
+}
+
+/// Execute the eval-mc command - evaluate multiple-choice accuracy
+#[allow(clippy::too_many_arguments)]
+pub async fn eval_mc(
+    data: String,
+    model: String,
+    checkpoint: Option<String>,
+    lora_rank: usize,
+    lora_alpha: f32,
+    device: String,
+    max_seq_length: usize,
+) -> Result<()> {
+    #[cfg(not(feature = "training"))]
+    {
+        let _ = (data, model, checkpoint, lora_rank, lora_alpha, device, max_seq_length);
+        anyhow::bail!(
+            "Training feature not enabled. Compile with: cargo build --features training"
+        );
+    }
+
+    #[cfg(feature = "training")]
+    {
+        use crate::training::{
+            evaluate_multiple_choice, load_recipe_mpr_examples, LoraConfig, BertLoraModel,
+        };
+        use candle_nn::VarMap;
+
+        println!("\n========================================");
+        println!("Multiple-Choice Evaluation");
+        println!("========================================");
+        tracing::info!("Starting multiple-choice evaluation");
+        tracing::info!("  Data: {}", data);
+        tracing::info!("  Model: {}", model);
+        tracing::info!("  Checkpoint: {:?}", checkpoint);
+        tracing::info!("  LoRA rank: {}", lora_rank);
+        tracing::info!("  LoRA alpha: {}", lora_alpha);
+        tracing::info!("  Device: {}", device);
+
+        // Select device
+        let device_pref: DevicePreference = device.parse()?;
+        let candle_device = select_device(device_pref)?;
+        tracing::info!("Using device: {:?}", candle_device);
+
+        // Load test data
+        tracing::info!("Loading evaluation data from: {}", data);
+        let examples = load_recipe_mpr_examples(&data)?;
+        tracing::info!("Loaded {} examples for evaluation", examples.len());
+
+        // Create LoRA config
+        let lora_config = LoraConfig::new(lora_rank, lora_alpha);
+
+        // Load model
+        let var_map = VarMap::new();
+        let mut lora_model = BertLoraModel::from_pretrained(&model, &lora_config, &var_map, &candle_device)?;
+
+        // Load checkpoint if provided
+        if let Some(ref ckpt_path) = checkpoint {
+            tracing::info!("Loading LoRA checkpoint from: {}", ckpt_path);
+            lora_model.load_lora_checkpoint(ckpt_path)?;
+            println!("  Status: Fine-tuned model (checkpoint loaded)");
+        } else {
+            println!("  Status: Baseline model (no checkpoint)");
+        }
+
+        tracing::info!(
+            "Model loaded: {} trainable params",
+            lora_model.num_trainable_params()
+        );
+
+        // Load tokenizer
+        tracing::info!("Loading tokenizer...");
+        let tokenizer = TokenizerWrapper::from_pretrained(&model)?
+            .with_max_length(max_seq_length);
+
+        // Run evaluation
+        println!("\nRunning evaluation on {} examples...", examples.len());
+        let result = evaluate_multiple_choice(&lora_model, &tokenizer, &examples, &candle_device)?;
+
+        // Display results
+        println!("\n========================================");
+        println!("Results");
+        println!("========================================");
+        println!("  {}", result);
+        println!("----------------------------------------");
+        println!("  Total examples: {}", result.total);
+        println!("  Correct (Top-1): {}", result.correct);
+        println!("  Accuracy: {:.2}%", result.accuracy * 100.0);
+        println!("  MRR: {:.4}", result.mrr);
+        println!("  Top-3 Accuracy: {:.2}%", result.top3_accuracy * 100.0);
+        println!("========================================\n");
+
+        Ok(())
+    }
 }
