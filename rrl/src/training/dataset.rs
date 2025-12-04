@@ -404,11 +404,11 @@ impl<'a> Iterator for BatchIterator<'a> {
 
 /// Extension trait for creating batches
 pub trait Batched {
-    fn batches(&self, batch_size: usize) -> BatchIterator;
+    fn batches(&self, batch_size: usize) -> BatchIterator<'_>;
 }
 
 impl Batched for TrainingDataset {
-    fn batches(&self, batch_size: usize) -> BatchIterator {
+    fn batches(&self, batch_size: usize) -> BatchIterator<'_> {
         BatchIterator::new(self, batch_size)
     }
 }

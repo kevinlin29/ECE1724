@@ -188,6 +188,7 @@ impl Trainer {
     }
 
     /// Train the model on the dataset
+    #[allow(unused_variables, unused_assignments)]
     pub fn train(
         &mut self,
         model: &dyn EmbeddingModel,
@@ -230,7 +231,7 @@ impl Trainer {
             let mut epoch_loss = 0.0;
             let mut epoch_samples = 0;
 
-            for (batch_idx, batch) in dataset.batches(self.config.batch_size).enumerate() {
+            for (_batch_idx, batch) in dataset.batches(self.config.batch_size).enumerate() {
                 let step_start = Instant::now();
 
                 // Convert batch examples to training format

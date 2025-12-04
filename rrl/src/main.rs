@@ -256,6 +256,9 @@ enum Commands {
 
     /// Launch interactive TUI (Terminal User Interface)
     Tui,
+
+    /// Launch training configuration TUI
+    TrainUi,
 }
 
 #[tokio::main]
@@ -394,6 +397,82 @@ async fn main() -> anyhow::Result<()> {
 
         Commands::Tui => {
             rrl::tui::run_tui()?;
+        }
+
+        Commands::TrainUi => {
+            // Launch the training configuration TUI
+            if let Some(config) = rrl::tui::run_training_tui()? {
+                println!("\n========================================");
+                println!("  Starting Training Pipeline");
+                println!("========================================\n");
+                println!("Configuration:");
+                println!("  Model:         {}", config.model);
+                println!("  Train Data:    {}", config.train_data);
+                println!("  Val Data:      {}", config.val_data.as_deref().unwrap_or("None"));
+                println!("  Test Data:     {}", config.test_data);
+                println!("  Output:        {}", config.output_dir);
+                println!("  Device:        {}", config.device);
+                println!("  Epochs:        {}", config.epochs);
+                println!("  Batch Size:    {}", config.batch_size);
+                println!("  Learning Rate: {}", config.learning_rate);
+                println!("  LoRA:          rank={}, alpha={}", config.lora_rank, config.lora_alpha);
+                println!();
+
+                // Step 1: Run training
+                println!("Step 1/2: Training...\n");
+                cli::train(
+                    config.train_data.clone(),
+                    config.output_dir.clone(),
+                    config.model.clone(),
+                    config.epochs,
+                    config.learning_rate,
+                    config.batch_size,
+                    config.lora_rank,
+                    config.lora_alpha,
+                    config.device.clone(),
+                    config.max_seq_length,
+                    config.gradient_accumulation,
+                    config.warmup_ratio,
+                    config.val_data.clone(),
+                    config.save_steps,
+                    config.logging_steps,
+                )
+                .await?;
+
+                // Step 2: Run evaluation on test set
+                println!("\n========================================");
+                println!("Step 2/2: Evaluating on test set...");
+                println!("========================================\n");
+
+                // Find the checkpoint file in the final directory
+                let final_dir = format!("{}/final", config.output_dir);
+                let checkpoint_path = std::fs::read_dir(&final_dir)
+                    .ok()
+                    .and_then(|entries| {
+                        entries
+                            .filter_map(|e| e.ok())
+                            .find(|e| e.path().extension().map_or(false, |ext| ext == "safetensors"))
+                            .map(|e| e.path().to_string_lossy().to_string())
+                    })
+                    .unwrap_or_else(|| format!("{}/checkpoint.safetensors", final_dir));
+                cli::eval_mc(
+                    config.test_data.clone(),
+                    config.model.clone(),
+                    Some(checkpoint_path),
+                    config.lora_rank,
+                    config.lora_alpha,
+                    config.device.clone(),
+                    config.max_seq_length,
+                )
+                .await?;
+
+                println!("\n========================================");
+                println!("  Training & Evaluation Complete!");
+                println!("========================================");
+                println!("Checkpoint saved to: {}", config.output_dir);
+            } else {
+                println!("Training cancelled by user");
+            }
         }
     }
 

@@ -20,6 +20,7 @@ pub struct Bm25Retriever {
     /// Tantivy reader
     reader: tantivy::IndexReader,
     /// Schema fields
+    #[allow(dead_code)]
     schema: Schema,
     /// Content field
     content_field: Field,
@@ -28,6 +29,7 @@ pub struct Bm25Retriever {
     /// Mapping from chunk ID to chunk data
     chunks: HashMap<String, Chunk>,
     /// Index directory path
+    #[allow(dead_code)]
     index_path: PathBuf,
     /// Index metadata
     metadata: IndexMetadata,

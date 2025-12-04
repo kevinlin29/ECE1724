@@ -3,10 +3,10 @@
 //! Provides accuracy metrics for multiple-choice retrieval tasks.
 
 use anyhow::{Context, Result};
-use candle_core::{Device, Tensor};
+use candle_core::Device;
 use std::path::Path;
 
-use super::models::{normalize_embeddings, BertLoraModel, TokenizerWrapper};
+use super::models::{BertLoraModel, TokenizerWrapper};
 
 /// Result of multiple-choice evaluation
 #[derive(Debug, Clone)]

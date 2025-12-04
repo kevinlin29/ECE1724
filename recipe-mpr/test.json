@@ -1,0 +1,1151 @@
+[
+  {
+    "query": "I want to cook polish sausage with sauerkraut",
+    "query_type": {
+      "Specific": 1,
+      "Commonsense": 0,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "6ce90e9b04": "Polish sausage with fermented cabbage",
+      "6d76705678": "Polish quiche pie made of savory crust and sausage",
+      "a62601292e": "Savory soup made of vegetables and polish sausage",
+      "a6c5c1f5cb": "Spanish rice with chicken, spicy sausage, and seafood with low sugar content",
+      "7b72caae72": "Korean hot pot with pork, tofu, and kimchi"
+    },
+    "answer": "6ce90e9b04",
+    "correctness_explanation": {
+      "polish sausage": "polish sausage",
+      "sauerkraut": "fermented cabage"
+    }
+  },
+  {
+    "query": "My father likes spicy food and I wanted to find a beef recipe that I could make for our family gathering this week",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "3acdf64c3b": "Corned beef with chili sauce",
+      "4eb6107a1f": "Sweet and sour beef",
+      "8df18fda8c": "Sweet BBQ Beef Kabobs",
+      "1a9a4191e5": "Spicy Chicken Fajitas",
+      "43f4928c1d": "Spicy chicken with chili oil"
+    },
+    "answer": "3acdf64c3b",
+    "correctness_explanation": {
+      "beef": "beef",
+      "spicy": "chili sauce"
+    }
+  },
+  {
+    "query": "I want something similar to Chipotle and also healthy",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 0,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "25e93f32e1": "Chiptole tofu that's low in cholesterol and high in protein",
+      "211c7b683e": "Chiptole mayonnaise that's high in calories and fat",
+      "0ea477c6f9": "Mexican s'mores made from chocolate and peanut butter",
+      "3a52b5f915": "Healthy coleslaw side dish made from cabbage",
+      "3a75634dee": "Guacamole made from avocado and soft tofu"
+    },
+    "answer": "25e93f32e1",
+    "correctness_explanation": {
+      "similar to Chipotle": "Chipotle",
+      "healthy": "low in cholestrol and high in protein"
+    }
+  },
+  {
+    "query": "What can I make with frozen berries that's not a drink?",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 0,
+      "Negated": 1,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "31ac8d0963": "Berry cobbler that uses frozen mixed berries",
+      "0679e58802": "Smoothie drink made from bananas, mixed berry yogurt, frozen mixed berries, and pomegranates",
+      "08351fa1ce": "Sweet pizza with pineapple and cream cheese",
+      "94ee2850e5": "Red wine sangria made with frozen mixed berries, lemon, and oranges",
+      "514bc8536d": "Jam made from lemon juice, sugar, and fresh strawberries"
+    },
+    "answer": "31ac8d0963",
+    "correctness_explanation": {
+      "frozen berries": "frozen mixed berries",
+      "not a drink": "cobbler"
+    }
+  },
+  {
+    "query": "Can I get a long island iced tea drink that isn't too sweet and has alcohol?",
+    "query_type": {
+      "Specific": 1,
+      "Commonsense": 0,
+      "Negated": 1,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "96aebd0344": "Low-sugar iced tea with rum or vodka",
+      "11732573c6": "Sweet iced tea drink",
+      "034aa0944b": "Blueberry iced tea (non-alcoholic)",
+      "89c9794a05": "Iced tea (non-alcoholic) with ginger ale",
+      "b31b40c1e3": "Lemonade drink made with alcohol"
+    },
+    "answer": "96aebd0344",
+    "correctness_explanation": {
+      "iced tea": "iced tea",
+      "isn't too sweet": "Low-sugar",
+      "alcohol": "rum or vodka"
+    }
+  },
+  {
+    "query": "I'm craving German snacks",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 0,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "5f4f0e5750": "Baked German-style pretzels",
+      "18820852fb": "German meatball made from ground meat, bread crumbs in mustard gravy",
+      "1eaa640995": "German burger made with seasoned german patties from ground pork and ground beef",
+      "31fa57c7ea": "German casserole from potatoes, sauerkraut, and polish sausage",
+      "2646da3394": "German style pan fried flat cut of beef"
+    },
+    "answer": "5f4f0e5750",
+    "correctness_explanation": {
+      "German": "German-style",
+      "snacks": "pretzels"
+    }
+  },
+  {
+    "query": "I can't handle spicy food and I would like a lemon chicken entree recipe",
+    "query_type": {
+      "Specific": 1,
+      "Commonsense": 1,
+      "Negated": 1,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "6f5173a6b0": "Chicken cooked and flavored with lemon sauce",
+      "09ba266480": "Chicken prepared with honey mustard sauce and seasoning",
+      "0d24b92b78": "Avocado and egg cracker snack with lemon and spices",
+      "263392b3ea": "Spicy chicken made with chicken breasts and chicken thighs",
+      "236d06426a": "Chicken cooked on the barbeque seasoned with lemon and paprika"
+    },
+    "answer": "6f5173a6b0",
+    "correctness_explanation": {
+      "lemon": "lemon sauce",
+      "chicken": "Chicken",
+      "can't handle spicy food": "<INFERRED>"
+    }
+  },
+  {
+    "query": "Do you have a cookie recipe that's good for someone with a nut allergy?",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "44c99b3cf4": "Nut-free cookies without baking",
+      "1533bb2a92": "Gluten-free, egg-free, dairy-free, nut-free fudge",
+      "49a8d7676b": "Gluten-free and grain-free nut bread",
+      "3432684886": "Gluten-free apple and nut cake",
+      "4031488820": "Mocha cookies with nuts"
+    },
+    "answer": "44c99b3cf4",
+    "correctness_explanation": {
+      "cookie": "cookies",
+      "good for someone with a nut allergy": "Nut-free"
+    }
+  },
+  {
+    "query": "I would like to make either apple or cherry pie for dessert",
+    "query_type": {
+      "Specific": 1,
+      "Commonsense": 0,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "06c7af9340": "Cherry pie made with dark sweet cherries",
+      "9b47867a69": "No-Bake apple crumble dessert containing walnuts, dates, and raisins",
+      "0138cdb839": "Baked pumpkin dessert pie filled with a sweet pumpkin spice based custard",
+      "01eee35005": "Cheesecake containing cherry pie filling",
+      "03d3a3778d": "Dessert pie with lemon curd and meringue"
+    },
+    "answer": "06c7af9340",
+    "correctness_explanation": {
+      "apple or cherry": "Cherry",
+      "pie": "pie"
+    }
+  },
+  {
+    "query": "I work outside in the winter, whats a thick beef soup recipe I could bring in my thermos for lunch if I don't like stew?",
+    "query_type": {
+      "Specific": 1,
+      "Commonsense": 0,
+      "Negated": 1,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "0391295c7d": "Soup made with ground beef, tomatoes, carrots, onions, spinach. Seasoned with: thyme, oregano, and garlic",
+      "32f5b09857": "Stew made with beef, potatoes, carrots, celery, and onions. Seasoned with salt and thyme",
+      "aaea31c5f9": "Low fat, fast to make, stew made with diced beef and vegetables",
+      "0a11c3f14d": "Thick and creamy butternut squash soup with parmesan cheese",
+      "8184410c77": "Stew made to resemble a hamburger, made with: beef, tomatoes,onions, potatoes, and carrots."
+    },
+    "answer": "0391295c7d",
+    "correctness_explanation": {
+      "could bring in my thermos": "Soup",
+      "beef": "ground beef",
+      "soup": "Soup",
+      "don't like stew": "<INFERRED>"
+    }
+  },
+  {
+    "query": "Can you give me a post-workout recovery meal?",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "0b581f2f5a": "Soup made with ground turkey that is low fat, high carb",
+      "2f49826fdd": "Low-carb cornbread",
+      "9552625d0c": "Wraps that are low in carb",
+      "40489cf028": "Low carb pizza",
+      "06051d0091": "Low carb flatbread"
+    },
+    "answer": "0b581f2f5a",
+    "correctness_explanation": {
+      "post-workout recovery": [
+        "low fat",
+        "high carb"
+      ],
+      "meal": "Soup"
+    }
+  },
+  {
+    "query": " I would like a shrimp recipe and I'm trying to eat a balanced diet",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "00a39a8659": "Shrimp roasted with vegetables in a zesty Italian dressing",
+      "4dafcc5cf8": "Shrimp balls made with pork fat deep fried in oil",
+      "18846ac2fa": "Breaded shrimp with whole milk and creole seasoning deep fried in hot oil",
+      "a3fd84d744": "Cucumber sauce with fat-free yogurt and reduced-fat mayonnaise",
+      "8ee91cce2e": "Healthy napa cabbage and green onion coleslaw containing peanuts"
+    },
+    "answer": "00a39a8659",
+    "correctness_explanation": {
+      "shrimp": "shrimp",
+      "balanced diet": "with vegetables"
+    }
+  },
+  {
+    "query": "I want a healthier breakfast omelette I can make quickly before work",
+    "query_type": {
+      "Specific": 1,
+      "Commonsense": 0,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 1
+    },
+    "options": {
+      "8efd111983": "High protein, low fat eggs, spinach, and vegetables mixed together in a pan and cooked to make an omelette",
+      "47865479a4": "Healthy mixed berry cobbler containing walnuts that's made with whole wheat flour",
+      "ce2e3d3a93": "Chicken liver with an omelet filling",
+      "1d7574ab8a": "Rolled omelet with SPAM",
+      "0a77dac796": "Breakfast pizza with sausage, cheddar, sour cream and jalapenos"
+    },
+    "answer": "8efd111983",
+    "correctness_explanation": {
+      "omelette": "omelette",
+      "healthier": "low fat",
+      "make quickly": "<INFERRED>"
+    }
+  },
+  {
+    "query": "What are filling vegan lunch recipes I can make for my friends who missed breakfast and don't like seeds?",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 0,
+      "Negated": 1,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "1c9c252105": "Vegan macaroni pasta with frozen peas, olive oil, nutritional yeast, and seasoning",
+      "72ae911e6c": "Vegan chocolate cake with vegan icing",
+      "0a91eb4582": "Breakfast quiche with onions, swiss cheese, and bacon",
+      "795fbf211d": "Egg imitation made with seeds",
+      "b604b99881": "Low fat / cholesterol imitation egg recipe without animal byproducts or meat"
+    },
+    "answer": "1c9c252105",
+    "correctness_explanation": {
+      "filling": "pasta",
+      "vegan": "Vegan",
+      "lunch": "pasta",
+      "don't like seeds": "<INFERRED>"
+    }
+  },
+  {
+    "query": "I want to make a Chinese dessert with custard",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 0,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "28d60dd8d2": "Soft and sweet Chinese custard bun",
+      "a6e75460dd": "Custard pudding made from yogurt and custard",
+      "105409bca2": "Lemon custard from fresh lemon juice",
+      "a5c681c4c9": "Sweet chinese red bean bun",
+      "0b1e5daa3f": "Sweet and gooey chinese black sesame dumplings eaten during Chinese lantern festival"
+    },
+    "answer": "28d60dd8d2",
+    "correctness_explanation": {
+      "Chinese": "Chinese",
+      "dessert with custard": "custard bun"
+    }
+  },
+  {
+    "query": "I want a baby food recipe that contains a variety of vitamins from natural sources, such as fruits",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 1,
+      "Temporal": 0
+    },
+    "options": {
+      "1dd0628e05": "A blend of mashed banana with pear and blueberry",
+      "7bf0ef2014": "Bananas blended with chocolate syrup",
+      "188e092f2b": "Salad with banana slices and pecans",
+      "45a724891d": "Cake made with apples, eggs, and flour",
+      "3bd5a034bc": "A milk punch made with banana, egg yolk, vanilla and spiked with brandy"
+    },
+    "answer": "1dd0628e05",
+    "correctness_explanation": {
+      "baby food": [
+        "mashed",
+        "<INFERRED>"
+      ],
+      "contains a variety of vitamins from natural sources": [
+        "banana",
+        "pear",
+        "blueberry"
+      ],
+      "fruits": [
+        "banana",
+        "pear",
+        "blueberry"
+      ]
+    }
+  },
+  {
+    "query": "I need to prepare a traditional Valentine's main course for my significant other.",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "05393bf4a0": "Juicy steak with cherry tomatoes, carrots, potatoes and broccoli",
+      "0981de04fa": "Chocolate fondue - melted milk chocolate dip",
+      "84be79dc5d": "Creamy seafood chowder with onions and mushrooms",
+      "06a53b0796": "Classic baked macaroni and cheese",
+      "88bc5ec028": "Steak chipotle burrito with basmati rice and beans"
+    },
+    "answer": "05393bf4a0",
+    "correctness_explanation": {
+      "Valentine's": "steak",
+      "main course": "steak"
+    }
+  },
+  {
+    "query": "I want kebabs that are easy on the stomach",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "0047cc5fcd": "Fruit kebabs made of strawberry, kiwi, bananas, and more fruits",
+      "028b07e4f7": "Greasy lamb kebab",
+      "0aff6a8ff0": "Flavorful teriyaki chicken kebab",
+      "0e29809831": "Spicy pork kebabs",
+      "182eb47c26": "Tukey kebab flavoured with salt and pepper"
+    },
+    "answer": "0047cc5fcd",
+    "correctness_explanation": {
+      "kebabs": "kebab",
+      "easy on the stomach": "<INFERRED>"
+    }
+  },
+  {
+    "query": "I pack my lunch for school every day but I hate the hassle of bringing multiple containers",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 1,
+      "Analogical": 0,
+      "Temporal": 1
+    },
+    "options": {
+      "85ea5bf974": "Ham and cheese sandwich with mayonnaise",
+      "06c853e7db": "Mashed potatoes with herbs and sour cream",
+      "08d62f3586": "Spaghetti pasta with bolognese sauce",
+      "3dd3869ec6": "Classic poutine - french fries in gravy with cheese curds",
+      "16edfc5b7b": "Chicken noodle soup with homemade noodles"
+    },
+    "answer": "85ea5bf974",
+    "correctness_explanation": {
+      "lunch": "sandwich",
+      "hate the hassle of bringing multiple containers": "<INFERRED>"
+    }
+  },
+  {
+    "query": "What is a cod entree I could make that's not a soup or stew?",
+    "query_type": {
+      "Specific": 1,
+      "Commonsense": 0,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "63a8d8ccea": "Cod cooked by roasting with seasoning",
+      "30bf0227df": "Spanish chickpea and cod stew",
+      "0204a7132f": "Beef stew with a variety of vegetables",
+      "0ea695884e": "Fish chowder containing cod, chives, bacon, onions, and potatoes",
+      "1a8a75b3a1": "Creamy garlic soup with leeks, potatoes, and carrots"
+    },
+    "answer": "63a8d8ccea",
+    "correctness_explanation": {
+      "cod": "Cod",
+      "not a soup or stew": "<INFERRED>"
+    }
+  },
+  {
+    "query": "Do you have a breakfast recipe for people with dysphagia?",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "189945b6ab": "Pumpkin puree",
+      "12caf612a9": "Chewy beef ribs",
+      "64bb8a0823": "Savoury seasoned snack mix with popcorn, Cheez-Its, Chex, pretzel twists, and smoked almonds",
+      "9b160af386": "Candy that is chewy and hard with a butterscotch flavour",
+      "03a44e60b7": "Classic baked apple pie"
+    },
+    "answer": "189945b6ab",
+    "correctness_explanation": {
+      "breakfast": "<INFERRED>",
+      "people with dysphagia": "puree"
+    }
+  },
+  {
+    "query": "What's a good cheesecake recipe if I'm considering going keto?",
+    "query_type": {
+      "Specific": 1,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "6217b3e93d": "Low carb sugar-free cheesecake",
+      "96a2a7f65b": "Keto friendly sandwich made with meat, cucumber, and cheese",
+      "6300e4adfd": "European-style cheesecake with a graham cracker crust",
+      "99d9e6c2fd": "Keto chocolate peanut butter fudge",
+      "2c25eedd2c": "Astragalus vegetable soup (detox soup)"
+    },
+    "answer": "6217b3e93d",
+    "correctness_explanation": {
+      "keto": "Low carb",
+      "cheesecake": "cheesecake"
+    }
+  },
+  {
+    "query": "Give me a low-glycemic dish for dinner",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "6427ac518b": "Stir-fried ginger chicken that is low-glycemic",
+      "a4bf69e663": "Low-glycemic dessert made from apples and butter",
+      "00c2039872": "Breakfast bars made with eggs and flour",
+      "7195d03521": "Rum and coffee cream after dinner drink recipe",
+      "549a08a991": "Long-grain white rice dish with onions"
+    },
+    "answer": "6427ac518b",
+    "correctness_explanation": {
+      "dish for dinner": "ginger chicken",
+      "low-glycemic": "low-glycemic"
+    }
+  },
+  {
+    "query": "I'm from Capetown and I want to introduce my vegetarian friend to cuisine from my country",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "7f9e7ce033": "South African vegetable curry flavoured with curry powder and ground tumeric",
+      "9ec0365675": "Ribs made with south african spices",
+      "6010de609e": "Capetown spit roasted leg of lamb",
+      "6c7474919e": "Sauerkraut fermented cabbage salad that tastes sour from vinegar",
+      "39f3ff87d1": "South African style smoothie made from cantaloupes and cherry"
+    },
+    "answer": "7f9e7ce033",
+    "correctness_explanation": {
+      "cuisine from my country": "South African",
+      "vegetarian": "vegetable curry"
+    }
+  },
+  {
+    "query": "How do I spice up my instant noodles? I'm bored of following the plain recipe on the packaging",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "78ebeb03f1": "Instant ramen with eggs, spinach and pickled cabbage",
+      "80ad140679": "Japanese ramen noodles made with savoury pork bone broth",
+      "5d88008a2c": "Fancy bread pudding with vanilla extract, nutmeg and brandy",
+      "9d56fc52db": "Simple instant Japanese miso soup",
+      "16edfc5b7b": "Chicken noodle soup with homemade noodles"
+    },
+    "answer": "78ebeb03f1",
+    "correctness_explanation": {
+      "spice up": [
+        "eggs",
+        "spinach",
+        "pickled cabbage"
+      ],
+      "instant noodles": "Instant ramen"
+    }
+  },
+  {
+    "query": "I want a meat dish suitable for date night",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 1
+    },
+    "options": {
+      "8d7ad3988d": "Garlic butter strip steaks cooked with onions",
+      "38dd1d9265": "Pepperoni stick made from ground beef",
+      "7fb61556f5": "No-meat meat pie containing onions and mushrooms",
+      "0e6be96c7b": "Chutney made from dates, ginger, salt, sugar, vinegar, and red chili peppers",
+      "02e982ec87": "Meat sauce containing tomato sauce, ground turkey, onion, dried basil, and red wine"
+    },
+    "answer": "8d7ad3988d",
+    "correctness_explanation": {
+      "meat": "steaks",
+      "date night": "<INFERRED>"
+    }
+  },
+  {
+    "query": "I want a healthy lunch dish",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "7e32f3aab4": "Nutritious meal made with sweet potato slices and ham",
+      "730a537b5b": "Deep fried mac and cheese with quinoa",
+      "6aeb5140ab": "Large portion fries with gravy and bacon",
+      "0dc5a67192": "Breakfast sandwich made with eggs and ham",
+      "16af1b09b3": "Bananas and strawberries blended in milk"
+    },
+    "answer": "7e32f3aab4",
+    "correctness_explanation": {
+      "healthy": "Nutritious",
+      "lunch": "<INFERRED>"
+    }
+  },
+  {
+    "query": "I want to bake something sweet for my grandma's birthday",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 0,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "16ed782fd9": "Classic chocolate cake",
+      "0294e9e9ad": "Classic chicken pot pie - pie with chicken and diced vegetables in gravy",
+      "0bf4540f77": "Microwave chocolate cake in a mug",
+      "4962b6675d": "No bake chocolate brownies",
+      "283491eae2": "Classic shephard's pie - casserole made from mashed potatoes and chicken stew"
+    },
+    "answer": "16ed782fd9",
+    "correctness_explanation": {
+      "sweet": "chocolate cake",
+      "bake": "cake"
+    }
+  },
+  {
+    "query": "I want some filling American food",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 0,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "342a8d609a": "A whole turkey for Thanksgiving",
+      "891e5e6978": "Cherry flavoured coke made from coke and kool-aid",
+      "415c191f07": "Caesar salad made from romaine lettuce and croutons",
+      "7d1325023d": "Dunkin donuts style coffee with granulated sugar",
+      "9e4dfd210d": "McDonalds apple pie from puff pastry, apple, and cinnamon"
+    },
+    "answer": "342a8d609a",
+    "correctness_explanation": {
+      "filling": "whole",
+      "American food": "turkey"
+    }
+  },
+  {
+    "query": "I want to make a healthy guacamole",
+    "query_type": {
+      "Specific": 1,
+      "Commonsense": 0,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "183273736c": "Guacamole made from avocado and onions",
+      "41ac07bbe0": "No salt salsa made from tomatoes and peppers",
+      "3a52b5f915": "Healthy coleslaw side dish made from cabbage",
+      "02dec458d8": "Deep fried guacamole coated in flour",
+      "17a3e20c58": "Creamy avocado dip for chips"
+    },
+    "answer": "183273736c",
+    "correctness_explanation": {
+      "guacamole": "Guacamole",
+      "healthy": "<INFERRED>"
+    }
+  },
+  {
+    "query": "I would like a comforting recipe with mushrooms for a cold day",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "7a6ee284ac": "Creamy soup with four types of mushrooms, onions, and rice",
+      "a4a7518c8d": "Onion soup made with French bread and gruyere cheese",
+      "8de97ec8e3": "Tomato soup with onions, parsley, and celery",
+      "3c45837e47": "Mushroom and lettuce salad with green onions",
+      "238f1873d7": "Cold mushrooms on spinach with sauces and seasonings"
+    },
+    "answer": "7a6ee284ac",
+    "correctness_explanation": {
+      "comforting": "soup",
+      "mushrooms": "mushrooms",
+      "cold day": "soup"
+    }
+  },
+  {
+    "query": "I want a dish with meat and I don't like vegetables",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 0,
+      "Negated": 1,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "01e71eeecf": "Meatballs made with ground beef and ground pork",
+      "7fb61556f5": "No-meat meat pie containing onions and mushrooms",
+      "026f93fbea": "Salmon cooked with edamame and carrots",
+      "24e09db1b5": "Pie filled with bulk sausage, potatoes, onions, and carrots",
+      "4cd3b498dd": "Carrots, shiitake mushrooms, and leeks with miso seasoning"
+    },
+    "answer": "01e71eeecf",
+    "correctness_explanation": {
+      "meat": "meatballs",
+      "don't like vegetables": "<INFERRED>"
+    }
+  },
+  {
+    "query": "Can I have a recipe for barbecue meat, but not seafood?",
+    "query_type": {
+      "Specific": 1,
+      "Commonsense": 0,
+      "Negated": 1,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "88a83339ed": "Beef short ribs cooked with barbecue sauce",
+      "0116e32447": "Barbecued salmon steaks with dry sherry",
+      "2acac76311": "Baby back ribs with soy sauce, sugar, garlic, honey, and ginger",
+      "3699357dec": "Barbecue jumbo shrimp with crushed red pepper flakes",
+      "3903149725": "Ginger-flavoured beef short ribs, onions, and pineapples"
+    },
+    "answer": "88a83339ed",
+    "correctness_explanation": {
+      "barbecue": "barbecue",
+      "meat": "beef short ribs",
+      "not seafood": "beef"
+    }
+  },
+  {
+    "query": "I'm in a rush to go to school this morning, what should I make?",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 1
+    },
+    "options": {
+      "7d59b6d82f": "Any cereal with milk",
+      "04d424289c": "Eggs benedict - poached eggs, prosciutto on top of English muffins topped with a creamy Hollandaise sauce",
+      "78ebeb03f1": "Instant ramen with eggs, spinach and pickled cabbage",
+      "0a77dac796": "Breakfast pizza with sausage, cheddar, sour cream and jalapenos",
+      "0a1ce6cce0": "Classic salted french fries made of only potatoes"
+    },
+    "answer": "7d59b6d82f",
+    "correctness_explanation": {
+      "in a rush": "<INFERRED>",
+      "morning": "cereal"
+    }
+  },
+  {
+    "query": "I'm looking for a way to introduce a source of greens into my kids' diets",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "4937a89ad0": "Soup made with cabbage, celery, onions, broccoli florets, and vegetable broth",
+      "04c8eae5b1": "Chicken breasts with green chili",
+      "20b77f3205": "A high-protein dessert that uses Tofu with crushed almond",
+      "0ca3c462b7": "Mini muffins with mashed carrots and applesauce",
+      "0b39996fd6": "Ground turkey blended and rolled into meatballs on a skewer along with apples pieces"
+    },
+    "answer": "4937a89ad0",
+    "correctness_explanation": {
+      "kids' diets": "<INFERRED>",
+      "greens": [
+        "cabbage",
+        "celery",
+        "broccoli florets"
+      ]
+    }
+  },
+  {
+    "query": "Can I have a brussel sprouts recipe with common ingredients?",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "2ecb1ba42f": "Brussel sprouts made with olive oil, garlic, and parmesan cheese",
+      "03187f7e14": "Easy broccoli recipe made with olive oil, salt and pepper",
+      "9a8febdd4f": "Simple quinoa sprouts recipe only requiring distilled water",
+      "0028ee4043": "Brussel sprout slaw made with a variety of sauces and seasonings, pecans, and pomegranate seeds",
+      "5e9acf4a7f": "Bok-choy cooked with garlic cloves"
+    },
+    "answer": "2ecb1ba42f",
+    "correctness_explanation": {
+      "brussel sprouts": "Brussel sprouts",
+      "common ingredients": "<INFERRED>"
+    }
+  },
+  {
+    "query": "What are some desserts I can make for my dog?",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 0,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "42eba59ba6": "Muffins for dogs made from flour, milk, egg, beef bouillon granules, baking powder",
+      "6927f32a08": "Cat food with tuna and chicken livers",
+      "866e0024ea": "Dog food with turkey, yogurt, egg and mixed vegetables",
+      "9bdd9e7a36": "Cat food chicken biscuits",
+      "40dee6da2f": "Dog food meatloaf"
+    },
+    "answer": "42eba59ba6",
+    "correctness_explanation": {
+      "dessert": "Muffins",
+      "for my dog": "for dogs"
+    }
+  },
+  {
+    "query": "I'm looking for a vegan egg dish and I also need to watch my cholesterol",
+    "query_type": {
+      "Specific": 1,
+      "Commonsense": 0,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "b604b99881": "Low fat / cholesterol imitation egg recipe without animal byproducts or meat",
+      "1b2240f816": "Vegan tofu recipe using pesto and mayonnaise",
+      "9269714d48": "Assortment of breakfast items: meatless bacon, potatoes, and tofu eggs",
+      "25e93f32e1": "Chiptole tofu that's low in cholesterol and high in protein",
+      "0dc5a67192": "Breakfast sandwich made with eggs and ham"
+    },
+    "answer": "b604b99881",
+    "correctness_explanation": {
+      "vegan": [
+        "Imitation",
+        "without animal byproducts or meat"
+      ],
+      "egg": "egg",
+      "watch my cholesterol": "Low fat / cholesterol"
+    }
+  },
+  {
+    "query": "What is a side dish recipe that will set my mouth on fire?",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "1158f0fbd4": "Assorted vegetables with cayenne pepper",
+      "f89e466120": "Dipping sauce for vegetables with curry powder",
+      "171fcb3767": "Side dish recipe for mushrooms",
+      "0138cdb839": "Baked pumpkin dessert pie filled with a sweet pumpkin spice based custard",
+      "28d4d3adb2": "Potatoes cooked with onions over a campfire"
+    },
+    "answer": "1158f0fbd4",
+    "correctness_explanation": {
+      "side dish": "assorted vegetables",
+      "set my mouth on fire": "cayenne pepper"
+    }
+  },
+  {
+    "query": "I'm allergic to dairy but I really love ice cream",
+    "query_type": {
+      "Specific": 1,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "538a69a398": "Dairy-free banana ice cream",
+      "94985a56ba": "Milkshake made from soy milk and cocona powder",
+      "163a8b39cd": "Ice cream made with whole milk and Oreo cookies",
+      "0dee15fcd6": "Iced coffee made with milk and ice cream",
+      "34c016f490": "Gluten-free, dairy-free, egg-free pancakes"
+    },
+    "answer": "538a69a398",
+    "correctness_explanation": {
+      "ice cream": "ice cream",
+      "allergic to dairy": "dairy-free"
+    }
+  },
+  {
+    "query": "I'd like a cucumber recipe where the cucumbers aren't cooked",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 1,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "081167be43": "Cucumber and red onion salad containing sour cream",
+      "3ac66762e8": "Bacon, lettuce, and tomato salad with buttermilk",
+      "03c6f03c63": "Zucchini dip made with tahini and red pepper flakes",
+      "4fa6519618": "Cucumbers baked with butter, dill seeds, fresh pepper, and salt",
+      "8ad8f43ff5": "Creamy cucumber soup containing curry powder"
+    },
+    "answer": "081167be43",
+    "correctness_explanation": {
+      "cucumber": "Cucumber",
+      "aren't cooked": "salad"
+    }
+  },
+  {
+    "query": "Can I have a recipe for grilled fish that's not tuna",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 0,
+      "Negated": 1,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "1689dd7fd9": "Grilled salmon seasoned with salt and pepper",
+      "909be673a6": "Grilled tuna with grilled bread and Aioli",
+      "01905a64b0": "Grilled squash, zucchinis, tomatoes and mushrooms seasoned with balsamic vinegar and herbs",
+      "6e6340ee39": "Raw salmon marinated in Amontillado Sherry",
+      "133f6a4526": "Tuna tataki - lightly seared tuna steaks in ponzu sauce"
+    },
+    "answer": "1689dd7fd9",
+    "correctness_explanation": {
+      "grilled": "grilled",
+      "fish": "salmon",
+      "not tuna": "<INFERRED>"
+    }
+  },
+  {
+    "query": "Recipes for mac and cheese with multiple types of cheese",
+    "query_type": {
+      "Specific": 1,
+      "Commonsense": 0,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "68a14c1e6e": "Macaroni made with ricotta, parmesan, cheddar, mozzarella, and cream cheese",
+      "2b0050997b": "Grilled cheese sandwich with four types of cheese",
+      "87d8e85e3b": "Macaroni cooked with salt, pepper, cheddar cheese, butter, and skim milk",
+      "a4a97b5c3d": "Macaroni noodles with celery, bell peppers, and onion",
+      "1c9c252105": "Vegan macaroni pasta with frozen peas, olive oil, nutritional yeast, and seasoning"
+    },
+    "answer": "68a14c1e6e",
+    "correctness_explanation": {
+      "mac": "Macaroni",
+      "multiple types of cheese": [
+        "ricotta",
+        "parmesan",
+        "cheddar",
+        "mozzarella",
+        "cream cheese"
+      ]
+    }
+  },
+  {
+    "query": "I want to use up the corn in my fridge for a warm dish",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "0302a9c63c": "Chowder soup made from corn, bacon, cornstarch and heavy cream",
+      "036f8a1d83": "Easy to make refrigerated garlic fridge pickle",
+      "2299a67ffd": "Chocolate fridge cake made with biscuits, nuts, and cherries",
+      "80cf34082f": "Fat free fridge fruit salad made with yogurt and granola",
+      "724772d056": "Soup made with carrots, pepper, celery, and egg noodles to use up the fridge leftovers"
+    },
+    "answer": "0302a9c63c",
+    "correctness_explanation": {
+      "corn": "corn",
+      "warm dish": "soup"
+    }
+  },
+  {
+    "query": "I want to make fries like the ones in McDonalds",
+    "query_type": {
+      "Specific": 1,
+      "Commonsense": 0,
+      "Negated": 0,
+      "Analogical": 1,
+      "Temporal": 0
+    },
+    "options": {
+      "32ed4d74f6": "McDonalds-style fries made from russet potatoes",
+      "3959e1aab8": "Fries fried in vegetable oil",
+      "67b8c5aad4": "Seasoning salt for fries, made from cumin, chili etc.",
+      "7ac3874cfa": "McGriddle sandwich filled with eggs, bacon, and cheese",
+      "9e4dfd210d": "McDonalds apple pie from puff pastry, apple, and cinnamon"
+    },
+    "answer": "32ed4d74f6",
+    "correctness_explanation": {
+      "fries": "fries",
+      "like the ones in McDonalds": "McDonalds-style"
+    }
+  },
+  {
+    "query": "Could I have some sweet dim sum?",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "8be6b7fc04": "Red coloured almond cookies",
+      "071dda0503": "Wonton dumpling made from ground pork and shrimp",
+      "8633236dbd": "Shanghainese dumpling with prawn, chicken, and chinese cabbage as filling",
+      "0fab1b497a": "Pot stickers stuffed from mushrooms and ground pork",
+      "2f25118380": "Bun stuffed with BBQ pork"
+    },
+    "answer": "8be6b7fc04",
+    "correctness_explanation": {
+      "dim sum": "almond cookies",
+      "sweet": "cookies"
+    }
+  },
+  {
+    "query": "I want to bake a sweet lemon tart",
+    "query_type": {
+      "Specific": 1,
+      "Commonsense": 0,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "a838baef39": "Lemon and goat cheese tart",
+      "9ba985f6aa": "Sweet potato tarts",
+      "22972e2a45": "Sweet potatoes with lemon juice",
+      "1cf8751733": "Lemon loaf made with flour, baking powder, salt, shortening, sugar, eggs, lemons, milk",
+      "0467ff1e38": "Sweet kiwi tart made from real kiwis"
+    },
+    "answer": "a838baef39",
+    "correctness_explanation": {
+      "sweet": "<INFERRED>",
+      "lemon": "Lemon",
+      "tart": "tart"
+    }
+  },
+  {
+    "query": "Ways to cook lamb with fragrant seasoning",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "01106228e0": "Racks of lamb flavoured with fried rosemary",
+      "1c2321be1c": "Lamb shoulder seasoned with onion, soy sauce, and oyster sauce",
+      "18b1fe9757": "Chicken breasts in a rosemary seasoning",
+      "6312a989de": "Vanilla cake decorated with Cool Whip and marshmallows to look like a lamb",
+      "77e6ed9fc0": "Lamb's Grandmother's Bread - sweet bread containing dried apricots, dates, and banana"
+    },
+    "answer": "01106228e0",
+    "correctness_explanation": {
+      "lamb": "lamb",
+      "fragrant seasoning": "fried rosemary"
+    }
+  },
+  {
+    "query": "I want vegetables for a breakfast meal",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 0,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "0c057e237d": "Scramble containing mushrooms, onions, corn, tomatoes, and avocados",
+      "755f079c5c": "BBQ chicken breasts and assorted vegetables with long-grained rice",
+      "399b212d02": "Broccoli, cauliflower, and mushroom vegetable snack with salad dressing",
+      "a14c13fe97": "Sausage, lunchmeat, and bacon breakfast cups",
+      "10e35b6bb5": "Breakfast sausage made from scratch using pork shoulder"
+    },
+    "answer": "0c057e237d",
+    "correctness_explanation": {
+      "vegetables": [
+        "onions",
+        "corn",
+        "tomatoes",
+        "avocados"
+      ],
+      "breakfast": "Scramble"
+    }
+  },
+  {
+    "query": "My uncle who is a Buddhist monk is coming over for lunch and I have no idea what I should cook for him",
+    "query_type": {
+      "Specific": 0,
+      "Commonsense": 1,
+      "Negated": 0,
+      "Analogical": 0,
+      "Temporal": 0
+    },
+    "options": {
+      "458476b982": "Soup made with pumpkin, sweet potatoes",
+      "02e982ec87": "Meat sauce containing tomato sauce, ground turkey, onion, dried basil, and red wine",
+      "43c1960bdb": "Lasagna made with ground beef and vegetables",
+      "6fe7906cff": "Vegetable soup with ground beef",
+      "74a44dc91d": "Korean style dumplings made with meat and vegetables"
+    },
+    "answer": "458476b982",
+    "correctness_explanation": {
+      "lunch": "soup",
+      "Buddhist monk": "<INFERRED>"
+    }
+  }
+]

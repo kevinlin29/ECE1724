@@ -4,10 +4,9 @@
 //! layer normalization using basic tensor operations instead of the
 //! candle_nn::LayerNorm which lacks CUDA support.
 
-use anyhow::{Context, Result};
-use candle_core::{DType, Device, IndexOp, Module, Tensor, D};
+use anyhow::Result;
+use candle_core::{DType, Module, Tensor, D};
 use candle_nn::{Embedding, Linear, VarBuilder};
-use std::collections::HashMap;
 
 /// CUDA-compatible Layer Normalization
 ///
@@ -26,8 +25,11 @@ impl CudaLayerNorm {
     }
 
     pub fn load(vb: VarBuilder, hidden_size: usize, eps: f64) -> Result<Self> {
-        let weight = vb.get(hidden_size, "weight")?;
-        let bias = vb.get(hidden_size, "bias")?;
+        // Try PyTorch naming (weight/bias) first, then TensorFlow naming (gamma/beta)
+        let weight = vb.get(hidden_size, "weight")
+            .or_else(|_| vb.get(hidden_size, "gamma"))?;
+        let bias = vb.get(hidden_size, "bias")
+            .or_else(|_| vb.get(hidden_size, "beta"))?;
         Ok(Self { weight, bias, eps })
     }
 
@@ -63,6 +65,7 @@ pub struct CudaBertEmbeddings {
     position_embeddings: Embedding,
     token_type_embeddings: Embedding,
     layer_norm: CudaLayerNorm,
+    #[allow(dead_code)]
     hidden_dropout_prob: f64,
 }
 
@@ -419,7 +422,7 @@ impl CudaBertModel {
     /// Converts [batch, seq] mask (1=valid, 0=pad) to [batch, 1, 1, seq] with -inf for padding
     fn create_attention_mask(&self, attention_mask: &Tensor) -> Result<Tensor> {
         let dtype = DType::F32;
-        let device = attention_mask.device();
+        let _device = attention_mask.device();
 
         // Convert 0/1 mask to attention mask with -inf for padding
         // Shape: [batch, seq] -> [batch, 1, 1, seq]
