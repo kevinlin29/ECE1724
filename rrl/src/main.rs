@@ -121,6 +121,14 @@ enum Commands {
         /// Log every N steps
         #[arg(long, default_value = "100")]
         logging_steps: usize,
+
+        /// Enable gradient checkpointing for memory efficiency
+        #[arg(long)]
+        gradient_checkpointing: bool,
+
+        /// Checkpoint segment size (layers per segment, smaller = less memory)
+        #[arg(long, default_value = "2")]
+        checkpoint_segment_size: usize,
     },
 
     /// Build retrieval indexes from chunks and embeddings
@@ -259,6 +267,62 @@ enum Commands {
 
     /// Launch training configuration TUI
     TrainUi,
+
+    /// Run RAG (Retrieval-Augmented Generation) query
+    #[cfg(feature = "training")]
+    Rag {
+        /// Index directory containing HNSW and/or BM25 indexes
+        #[arg(short, long)]
+        index: String,
+
+        /// Query text (interactive mode if not provided)
+        #[arg(short, long)]
+        query: Option<String>,
+
+        /// Generator model (HuggingFace ID or local path)
+        #[arg(short, long, default_value = "Qwen/Qwen2.5-0.5B")]
+        generator: String,
+
+        /// Embedder model (HuggingFace ID or local path)
+        #[arg(short, long, default_value = "bert-base-uncased")]
+        embedder: String,
+
+        /// Embedder LoRA checkpoint path
+        #[arg(long)]
+        embedder_checkpoint: Option<String>,
+
+        /// Generator LoRA checkpoint path
+        #[arg(long)]
+        generator_checkpoint: Option<String>,
+
+        /// Number of documents to retrieve
+        #[arg(short = 'k', long, default_value = "5")]
+        top_k: usize,
+
+        /// Retriever type: dense, sparse, or hybrid
+        #[arg(short, long, default_value = "hybrid")]
+        retriever: String,
+
+        /// Sampling temperature (0 = greedy)
+        #[arg(long, default_value = "0.7")]
+        temperature: f32,
+
+        /// Maximum new tokens to generate
+        #[arg(long, default_value = "512")]
+        max_tokens: usize,
+
+        /// Prompt template: default, concise, detailed, recipe, chat
+        #[arg(long, default_value = "default")]
+        template: String,
+
+        /// Output format: text or json
+        #[arg(long, default_value = "text")]
+        format: String,
+
+        /// Device: auto, cpu, cuda, or metal
+        #[arg(long, default_value = "auto")]
+        device: String,
+    },
 }
 
 #[tokio::main]
@@ -333,6 +397,8 @@ async fn main() -> anyhow::Result<()> {
             val_data,
             save_steps,
             logging_steps,
+            gradient_checkpointing,
+            checkpoint_segment_size,
         } => {
             cli::train(
                 data,
@@ -350,6 +416,8 @@ async fn main() -> anyhow::Result<()> {
                 val_data,
                 save_steps,
                 logging_steps,
+                gradient_checkpointing,
+                checkpoint_segment_size,
             )
             .await?;
         }
@@ -399,6 +467,40 @@ async fn main() -> anyhow::Result<()> {
             rrl::tui::run_tui()?;
         }
 
+        #[cfg(feature = "training")]
+        Commands::Rag {
+            index,
+            query,
+            generator,
+            embedder,
+            embedder_checkpoint,
+            generator_checkpoint,
+            top_k,
+            retriever,
+            temperature,
+            max_tokens,
+            template,
+            format,
+            device,
+        } => {
+            cli::rag(
+                index,
+                query,
+                generator,
+                embedder,
+                embedder_checkpoint,
+                generator_checkpoint,
+                top_k,
+                retriever,
+                temperature,
+                max_tokens,
+                template,
+                format,
+                device,
+            )
+            .await?;
+        }
+
         Commands::TrainUi => {
             // Launch the training configuration TUI
             if let Some(config) = rrl::tui::run_training_tui()? {
@@ -436,6 +538,8 @@ async fn main() -> anyhow::Result<()> {
                     config.val_data.clone(),
                     config.save_steps,
                     config.logging_steps,
+                    false, // gradient_checkpointing (default off for TUI)
+                    2,     // checkpoint_segment_size (default)
                 )
                 .await?;
 

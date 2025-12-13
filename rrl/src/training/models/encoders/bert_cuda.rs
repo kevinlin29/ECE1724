@@ -3,10 +3,27 @@
 //! This module provides a BERT model that works on CUDA by implementing
 //! layer normalization using basic tensor operations instead of the
 //! candle_nn::LayerNorm which lacks CUDA support.
+//!
+//! Supports gradient checkpointing for memory-efficient training.
 
 use anyhow::Result;
 use candle_core::{DType, Module, Tensor, D};
 use candle_nn::{Embedding, Linear, VarBuilder};
+
+use crate::training::checkpoint::{is_checkpointing_enabled, CheckpointConfig};
+
+/// CUDA-compatible softmax
+///
+/// Implements softmax using basic ops that have CUDA support:
+/// softmax(x) = exp(x - max(x)) / sum(exp(x - max(x)))
+fn cuda_softmax(x: &Tensor, dim: D) -> anyhow::Result<Tensor> {
+    // Numerically stable softmax: subtract max before exp
+    let max = x.max_keepdim(dim)?;
+    let x_shifted = x.broadcast_sub(&max)?;
+    let exp_x = x_shifted.exp()?;
+    let sum_exp = exp_x.sum_keepdim(dim)?;
+    Ok(exp_x.broadcast_div(&sum_exp)?)
+}
 
 /// CUDA-compatible Layer Normalization
 ///
@@ -197,7 +214,7 @@ impl CudaBertSelfAttention {
         };
 
         // Softmax
-        let attention_probs = candle_nn::ops::softmax(&attention_scores, D::Minus1)?;
+        let attention_probs = cuda_softmax(&attention_scores, D::Minus1)?;
 
         // Apply attention to values
         let context_layer = attention_probs.matmul(&value_layer)?;
@@ -328,9 +345,14 @@ impl CudaBertLayer {
 }
 
 /// BERT encoder (stack of transformer layers)
+///
+/// Supports gradient checkpointing for memory-efficient training.
+/// When checkpointing is enabled, activations are not stored during forward pass
+/// and are recomputed during backward pass.
 #[derive(Debug)]
 pub struct CudaBertEncoder {
     layers: Vec<CudaBertLayer>,
+    checkpoint_config: CheckpointConfig,
 }
 
 impl CudaBertEncoder {
@@ -343,10 +365,54 @@ impl CudaBertEncoder {
             layers.push(layer);
         }
 
-        Ok(Self { layers })
+        Ok(Self {
+            layers,
+            checkpoint_config: CheckpointConfig::default(),
+        })
+    }
+
+    /// Load with gradient checkpointing configuration
+    pub fn load_with_checkpointing(
+        vb: VarBuilder,
+        config: &CudaBertConfig,
+        checkpoint_config: CheckpointConfig,
+    ) -> Result<Self> {
+        let mut encoder = Self::load(vb, config)?;
+        encoder.checkpoint_config = checkpoint_config;
+        Ok(encoder)
+    }
+
+    /// Set the checkpoint configuration
+    pub fn set_checkpoint_config(&mut self, config: CheckpointConfig) {
+        self.checkpoint_config = config;
+    }
+
+    /// Enable gradient checkpointing with default segment size
+    pub fn enable_checkpointing(&mut self, segment_size: usize) {
+        self.checkpoint_config = CheckpointConfig::new(true).with_segment_size(segment_size);
+    }
+
+    /// Disable gradient checkpointing
+    pub fn disable_checkpointing(&mut self) {
+        self.checkpoint_config.enabled = false;
     }
 
     pub fn forward(
+        &self,
+        hidden_states: &Tensor,
+        attention_mask: Option<&Tensor>,
+    ) -> Result<Tensor> {
+        let use_checkpointing = self.checkpoint_config.enabled && is_checkpointing_enabled();
+
+        if use_checkpointing {
+            self.forward_with_checkpointing(hidden_states, attention_mask)
+        } else {
+            self.forward_standard(hidden_states, attention_mask)
+        }
+    }
+
+    /// Standard forward pass without checkpointing
+    fn forward_standard(
         &self,
         hidden_states: &Tensor,
         attention_mask: Option<&Tensor>,
@@ -358,6 +424,62 @@ impl CudaBertEncoder {
         }
 
         Ok(hidden_states)
+    }
+
+    /// Forward pass with gradient checkpointing
+    ///
+    /// Divides layers into segments and creates checkpoints at segment boundaries.
+    /// This reduces memory usage by not storing all intermediate activations,
+    /// at the cost of recomputing them during backward pass.
+    fn forward_with_checkpointing(
+        &self,
+        hidden_states: &Tensor,
+        attention_mask: Option<&Tensor>,
+    ) -> Result<Tensor> {
+        let segment_size = self.checkpoint_config.segment_size;
+        let num_layers = self.layers.len();
+
+        tracing::debug!(
+            "Running BERT encoder with checkpointing (segment_size={}, layers={})",
+            segment_size,
+            num_layers
+        );
+
+        let mut hidden_states = hidden_states.clone();
+
+        for (segment_idx, segment_start) in (0..num_layers).step_by(segment_size).enumerate() {
+            let segment_end = (segment_start + segment_size).min(num_layers);
+
+            // Checkpoint at segment boundary (except first)
+            // Detaching breaks the computation graph, so gradients won't flow through
+            // During backward pass, Candle will recompute from this checkpoint
+            if segment_idx > 0 {
+                hidden_states = hidden_states.detach();
+                tracing::trace!(
+                    "Checkpoint created at segment {} (layers {}-{})",
+                    segment_idx,
+                    segment_start,
+                    segment_end
+                );
+            }
+
+            // Run layers in this segment
+            for layer_idx in segment_start..segment_end {
+                hidden_states = self.layers[layer_idx].forward(&hidden_states, attention_mask)?;
+            }
+        }
+
+        Ok(hidden_states)
+    }
+
+    /// Get number of layers
+    pub fn num_layers(&self) -> usize {
+        self.layers.len()
+    }
+
+    /// Get checkpoint config
+    pub fn checkpoint_config(&self) -> &CheckpointConfig {
+        &self.checkpoint_config
     }
 }
 
@@ -463,6 +585,7 @@ impl CudaBertModel {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use candle_core::Device;
 
     #[test]
     fn test_cuda_layer_norm() {

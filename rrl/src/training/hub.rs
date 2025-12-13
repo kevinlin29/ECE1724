@@ -127,16 +127,34 @@ impl ModelPath {
             return Err(anyhow!("config.json not found in {:?}", path));
         }
 
-        // Try safetensors first, then pytorch
+        // Try safetensors first, then pytorch, then sharded
         let weights_file = if path.join("model.safetensors").exists() {
             path.join("model.safetensors")
         } else if path.join("pytorch_model.bin").exists() {
             path.join("pytorch_model.bin")
+        } else if path.join("model-00001-of-00004.safetensors").exists() {
+            // Sharded model - return first shard, generator will find all
+            path.join("model-00001-of-00004.safetensors")
         } else {
-            return Err(anyhow!(
-                "No model weights found in {:?} (tried model.safetensors and pytorch_model.bin)",
+            // Try to find any safetensors file starting with "model-"
+            let mut found = None;
+            if let Ok(entries) = std::fs::read_dir(&path) {
+                for entry in entries.flatten() {
+                    let p = entry.path();
+                    if p.extension().map(|e| e == "safetensors").unwrap_or(false) {
+                        if let Some(name) = p.file_name() {
+                            if name.to_string_lossy().starts_with("model-") {
+                                found = Some(p);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            found.ok_or_else(|| anyhow!(
+                "No model weights found in {:?} (tried model.safetensors, pytorch_model.bin, and sharded safetensors)",
                 path
-            ));
+            ))?
         };
 
         let tokenizer_file = path.join("tokenizer.json");

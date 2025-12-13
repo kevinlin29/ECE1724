@@ -12,6 +12,7 @@ use candle_nn::VarMap;
 use std::path::Path;
 use std::time::Instant;
 
+use super::checkpoint::{enable_checkpointing, disable_checkpointing, CheckpointMemoryStats};
 use super::dataset::{Batched, TrainingDataset};
 use super::loss::{ContrastiveLoss, ContrastiveLossConfig};
 use super::models::{EmbeddingModel, TokenizerWrapper};
@@ -46,6 +47,10 @@ pub struct TrainingConfig {
     pub temperature: f32,
     /// Maximum sequence length
     pub max_seq_length: usize,
+    /// Enable gradient checkpointing for memory efficiency
+    pub gradient_checkpointing: bool,
+    /// Number of layers per checkpoint segment (smaller = less memory, more compute)
+    pub checkpoint_segment_size: usize,
 }
 
 impl Default for TrainingConfig {
@@ -64,7 +69,26 @@ impl Default for TrainingConfig {
             output_dir: "./output".to_string(),
             temperature: 0.05,
             max_seq_length: 512,
+            gradient_checkpointing: false,
+            checkpoint_segment_size: 2,
         }
+    }
+}
+
+impl TrainingConfig {
+    /// Estimate memory savings from gradient checkpointing
+    pub fn estimate_checkpoint_memory(
+        &self,
+        hidden_size: usize,
+        num_layers: usize,
+    ) -> CheckpointMemoryStats {
+        CheckpointMemoryStats::estimate(
+            self.batch_size,
+            self.max_seq_length,
+            hidden_size,
+            num_layers,
+            self.checkpoint_segment_size,
+        )
     }
 }
 
@@ -198,14 +222,36 @@ impl Trainer {
         progress_callback: Option<Box<dyn Fn(&TrainingMetrics)>>,
     ) -> Result<TrainingResult> {
         let total_batches = (dataset.len() + self.config.batch_size - 1) / self.config.batch_size;
-        let total_steps = total_batches * self.config.num_epochs;
+        let total_steps = total_batches * self.config.num_epochs / self.config.gradient_accumulation_steps;
 
         tracing::info!("Starting training:");
         tracing::info!("  Dataset size: {}", dataset.len());
         tracing::info!("  Batch size: {}", self.config.batch_size);
+        tracing::info!("  Gradient accumulation steps: {}", self.config.gradient_accumulation_steps);
+        tracing::info!("  Effective batch size: {}", self.config.batch_size * self.config.gradient_accumulation_steps);
         tracing::info!("  Epochs: {}", self.config.num_epochs);
-        tracing::info!("  Total steps: {}", total_steps);
+        tracing::info!("  Total optimization steps: {}", total_steps);
         tracing::info!("  Learning rate: {}", self.config.learning_rate);
+        tracing::info!("  Max gradient norm: {}", self.config.max_grad_norm);
+
+        // Enable/disable gradient checkpointing globally
+        if self.config.gradient_checkpointing {
+            enable_checkpointing();
+            tracing::info!("  Gradient checkpointing: ENABLED (segment_size={})", self.config.checkpoint_segment_size);
+
+            // Log memory estimation
+            let mem_stats = self.config.estimate_checkpoint_memory(
+                model.hidden_size(),
+                12, // Typical BERT layers, could be made configurable
+            );
+            tracing::info!("  Estimated memory savings: {:.1} MB ({:.1}%)",
+                mem_stats.memory_saved_mb,
+                mem_stats.memory_saved_mb / mem_stats.peak_without_checkpoint_mb * 100.0
+            );
+        } else {
+            disable_checkpointing();
+            tracing::info!("  Gradient checkpointing: disabled");
+        }
 
         // Create optimizer and scheduler
         let mut optimizer = self.create_optimizer()?;
@@ -219,8 +265,9 @@ impl Trainer {
 
         let mut metrics = TrainingMetrics::default();
         let mut history = Vec::new();
-        let mut accumulated_loss = 0.0;
+        let mut accumulated_loss_value = 0.0;
         let mut accumulated_steps = 0;
+        let mut accumulated_loss_tensor: Option<Tensor> = None;
 
         // Create output directory
         std::fs::create_dir_all(&self.config.output_dir)?;
@@ -248,7 +295,7 @@ impl Trainer {
                     continue;
                 }
 
-                // Compute loss and gradients
+                // Compute loss for this batch
                 let loss = self.compute_batch_loss(
                     model,
                     tokenizer,
@@ -258,26 +305,53 @@ impl Trainer {
                 )?;
 
                 let loss_value = loss.to_scalar::<f32>()? as f64;
-                accumulated_loss += loss_value;
+
+                // Scale loss for gradient accumulation (average over accumulation steps)
+                let scaled_loss = (&loss / self.config.gradient_accumulation_steps as f64)?;
+
+                // Accumulate the loss tensor for proper gradient computation
+                accumulated_loss_tensor = Some(match accumulated_loss_tensor {
+                    Some(acc) => (&acc + &scaled_loss)?,
+                    None => scaled_loss,
+                });
+
+                accumulated_loss_value += loss_value;
                 accumulated_steps += 1;
                 epoch_loss += loss_value;
                 epoch_samples += queries.len();
 
-                // Gradient accumulation
+                // Perform optimization step after accumulating enough gradients
                 if accumulated_steps >= self.config.gradient_accumulation_steps {
-                    // Backward pass
-                    let grads = loss.backward()?;
+                    if let Some(ref acc_loss) = accumulated_loss_tensor {
+                        // Backward pass on accumulated loss
+                        let grads = acc_loss.backward()?;
 
-                    // Optimizer step
-                    optimizer.step(&grads)?;
+                        // Optimizer step with gradient clipping
+                        let grad_norm = optimizer.step_with_clipping(
+                            &grads,
+                            self.config.max_grad_norm,
+                        )?;
 
-                    // Update learning rate
-                    let new_lr = scheduler.step();
-                    optimizer.set_learning_rate(new_lr);
+                        if grad_norm > self.config.max_grad_norm {
+                            tracing::debug!(
+                                "Step {}: Gradient norm {:.4} exceeded max {:.4}, clipping applied",
+                                metrics.global_step,
+                                grad_norm,
+                                self.config.max_grad_norm
+                            );
+                        }
 
-                    metrics.global_step += 1;
-                    accumulated_loss = 0.0;
+                        // Update learning rate
+                        let new_lr = scheduler.step();
+                        optimizer.set_learning_rate(new_lr);
+
+                        metrics.global_step += 1;
+                    }
+
+                    // Reset accumulation
+                    accumulated_loss_value = 0.0;
                     accumulated_steps = 0;
+                    accumulated_loss_tensor = None;
                 }
 
                 // Update metrics

@@ -1,12 +1,21 @@
 //! Embedding backend implementations
 //!
-//! Supports tch (PyTorch) and onnxruntime backends with GPU acceleration.
+//! Supports multiple backends:
+//! - Candle BERT: Native Rust BERT with LoRA support for fine-tuned models
+//! - ONNX: ONNX Runtime for production deployment
+//! - Mock/Token: Testing and fallback embedders
 
 use crate::embedding::{Embedder, Embedding, EmbeddingConfig, normalize_embedding};
 use anyhow::Result;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
+
+#[cfg(feature = "training")]
+pub mod candle_bert;
+
+#[cfg(feature = "training")]
+pub use candle_bert::{CandleBertConfig, CandleBertEmbedder, auto_detect_embedder};
 
 #[cfg(feature = "onnx-backend")]
 pub mod onnx;

@@ -38,5 +38,9 @@ pub mod cli;
 pub mod utils;
 pub mod tui;
 
+// RAG pipeline module
+#[cfg(feature = "training")]
+pub mod rag;
+
 // Re-export commonly used types
 pub use anyhow::{Error, Result};
