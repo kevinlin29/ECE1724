@@ -1,6 +1,6 @@
 //! BERT model with trainable LoRA adapters
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{Init, VarBuilder, VarMap};
 use std::path::Path;

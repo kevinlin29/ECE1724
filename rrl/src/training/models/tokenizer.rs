@@ -157,6 +157,26 @@ impl TokenizerWrapper {
     pub fn vocab_size(&self) -> usize {
         self.tokenizer.get_vocab_size(true)
     }
+
+    /// Get EOS token ID if available
+    pub fn eos_token_id(&self) -> Option<u32> {
+        // Try to get from special tokens
+        self.tokenizer.token_to_id("[SEP]")
+            .or_else(|| self.tokenizer.token_to_id("<|endoftext|>"))
+            .or_else(|| self.tokenizer.token_to_id("</s>"))
+            .or_else(|| self.tokenizer.token_to_id("<|im_end|>"))
+    }
+
+    /// Get PAD token ID if available
+    pub fn pad_token_id(&self) -> Option<u32> {
+        self.tokenizer.token_to_id("[PAD]")
+            .or_else(|| self.tokenizer.token_to_id("<|padding|>"))
+    }
+
+    /// Get the underlying tokenizer reference
+    pub fn inner(&self) -> &Tokenizer {
+        &self.tokenizer
+    }
 }
 
 /// Encoded input for a single text

@@ -463,6 +463,7 @@ impl CudaBertModel {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use candle_core::Device;
 
     #[test]
     fn test_cuda_layer_norm() {

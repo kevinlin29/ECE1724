@@ -858,3 +858,207 @@ pub async fn eval_mc(
         Ok(())
     }
 }
+
+/// Execute the RAG (Retrieval-Augmented Generation) command
+#[cfg(feature = "training")]
+pub async fn rag(
+    index: String,
+    query: Option<String>,
+    generator_model: String,
+    embedder_model: String,
+    embedder_checkpoint: Option<String>,
+    generator_checkpoint: Option<String>,
+    top_k: usize,
+    retriever_type: String,
+    temperature: f32,
+    max_tokens: usize,
+    template: String,
+    format: String,
+    device: String,
+) -> Result<()> {
+    use crate::embedding::backends::{CandleBertConfig, CandleBertEmbedder};
+    use crate::rag::{
+        Generator, GeneratorConfig, RagConfig, RagPipelineBuilder,
+        RetrievalStrategy, SamplingParams,
+    };
+
+    tracing::info!("Starting RAG pipeline");
+    tracing::info!("  Index: {}", index);
+    tracing::info!("  Generator: {}", generator_model);
+    tracing::info!("  Embedder: {}", embedder_model);
+    tracing::info!("  Top-K: {}", top_k);
+    tracing::info!("  Retriever: {}", retriever_type);
+    tracing::info!("  Device: {}", device);
+
+    // Parse device preference
+    let device_pref: DevicePreference = device.parse()?;
+
+    // Load embedder
+    println!("Loading embedder model...");
+    let mut embedder_config = CandleBertConfig::new(&embedder_model)
+        .with_device(device_pref.clone());
+
+    if let Some(ref ckpt) = embedder_checkpoint {
+        embedder_config = embedder_config.with_lora_checkpoint(ckpt);
+    }
+
+    let embedder: Arc<dyn crate::embedding::Embedder> = Arc::new(CandleBertEmbedder::new(embedder_config)?);
+
+    // Load retriever
+    println!("Loading retriever...");
+    let index_path = Path::new(&index);
+    let hnsw_dir = index_path.join("hnsw");
+    let bm25_dir = index_path.join("bm25");
+
+    let strategy = match retriever_type.as_str() {
+        "hybrid" => RetrievalStrategy::Hybrid,
+        "dense" => RetrievalStrategy::Dense,
+        "sparse" => RetrievalStrategy::Sparse,
+        _ => RetrievalStrategy::Hybrid,
+    };
+
+    let retriever: Arc<dyn Retriever> = match retriever_type.as_str() {
+        "hybrid" => {
+            if hnsw_dir.exists() && bm25_dir.exists() {
+                let hnsw: Arc<dyn Retriever> = Arc::new(HnswRetriever::load(&hnsw_dir, embedder.clone())?);
+                let bm25: Arc<dyn Retriever> = Arc::new(Bm25Retriever::load(&bm25_dir)?);
+                Arc::new(HybridRetriever::new(vec![hnsw, bm25]))
+            } else {
+                anyhow::bail!("Hybrid retriever requires both HNSW and BM25 indexes");
+            }
+        }
+        "dense" => {
+            if hnsw_dir.exists() {
+                Arc::new(HnswRetriever::load(&hnsw_dir, embedder.clone())?)
+            } else {
+                anyhow::bail!("Dense retriever requires HNSW index");
+            }
+        }
+        "sparse" => {
+            if bm25_dir.exists() {
+                Arc::new(Bm25Retriever::load(&bm25_dir)?)
+            } else {
+                anyhow::bail!("Sparse retriever requires BM25 index");
+            }
+        }
+        _ => anyhow::bail!("Unknown retriever type: {}", retriever_type),
+    };
+
+    // Load generator
+    println!("Loading generator model...");
+    let mut generator_config = GeneratorConfig::new(&generator_model)
+        .with_device(device_pref)
+        .with_max_new_tokens(max_tokens);
+
+    if let Some(ref ckpt) = generator_checkpoint {
+        generator_config = generator_config.with_lora_checkpoint(ckpt);
+    }
+
+    let generator = Generator::new(generator_config)?;
+
+    // Build pipeline
+    println!("Building RAG pipeline...");
+    let sampling_params = SamplingParams::default()
+        .with_temperature(temperature)
+        .with_max_new_tokens(max_tokens);
+
+    let rag_config = RagConfig {
+        retrieval_strategy: strategy,
+        top_k,
+        max_context_chars: 4000,
+        include_citations: true,
+        template_name: template,
+        sampling_params,
+    };
+
+    let pipeline = RagPipelineBuilder::new()
+        .embedder(embedder)
+        .retriever(retriever)
+        .generator(generator)
+        .config(rag_config)
+        .build()?;
+
+    println!("RAG pipeline ready!\n");
+
+    // Execute query or enter interactive mode
+    if let Some(query_text) = query {
+        // Single query mode
+        execute_rag_query(&pipeline, &query_text, top_k, &format)?;
+    } else {
+        // Interactive mode
+        println!("Entering interactive mode. Type 'exit' or 'quit' to stop.\n");
+
+        let stdin = std::io::stdin();
+        loop {
+            print!("Query: ");
+            std::io::Write::flush(&mut std::io::stdout())?;
+
+            let mut input = String::new();
+            stdin.read_line(&mut input)?;
+            let input = input.trim();
+
+            if input.is_empty() {
+                continue;
+            }
+
+            if input == "exit" || input == "quit" {
+                println!("Goodbye!");
+                break;
+            }
+
+            execute_rag_query(&pipeline, input, top_k, &format)?;
+            println!();
+        }
+    }
+
+    Ok(())
+}
+
+#[cfg(feature = "training")]
+fn execute_rag_query(
+    pipeline: &crate::rag::RagPipeline,
+    query_text: &str,
+    top_k: usize,
+    format: &str,
+) -> Result<()> {
+    use crate::rag::RagQuery;
+
+    let query = RagQuery::new(query_text).with_top_k(top_k);
+
+    println!("Retrieving documents...");
+    let start = std::time::Instant::now();
+
+    let response = pipeline.query(query)?;
+    let total_time = start.elapsed().as_millis();
+
+    match format {
+        "json" => {
+            let json = serde_json::to_string_pretty(&response)?;
+            println!("{}", json);
+        }
+        _ => {
+            println!("\n========================================");
+            println!("Answer");
+            println!("========================================");
+            println!("{}", response.answer);
+
+            println!("\n========================================");
+            println!("Sources ({} documents)", response.sources.len());
+            println!("========================================");
+            for (i, source) in response.sources.iter().enumerate() {
+                println!("[{}] {} (score: {:.4})", i + 1, source.document_id, source.score);
+                println!("    {}", source.snippet);
+            }
+
+            println!("\n========================================");
+            println!("Timing");
+            println!("========================================");
+            println!("  Retrieval: {}ms", response.retrieval_time_ms);
+            println!("  Generation: {}ms", response.generation_time_ms);
+            println!("  Total: {}ms", total_time);
+            println!("  Tokens used: {}", response.tokens_used);
+        }
+    }
+
+    Ok(())
+}

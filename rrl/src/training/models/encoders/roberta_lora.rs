@@ -7,7 +7,7 @@ use std::path::Path;
 
 use super::super::common::{EmbeddingModel, LoraModel, ModelArchitecture, PoolingStrategy};
 use super::bert_cuda::{CudaBertConfig, CudaBertModel};
-use super::encoder_utils::{apply_pooling, normalize_embeddings};
+use super::encoder_utils::apply_pooling;
 use crate::training::hub::ModelPath;
 use crate::training::lora::LoraConfig;
 
