@@ -7,7 +7,9 @@ use candle_core::{DType, Device, Tensor};
 use candle_nn::VarBuilder;
 use candle_transformers::models::bert::{BertModel, Config as BertConfig};
 
-use super::{apply_pooling, EmbeddingModel, ModelArchitecture, PoolingStrategy};
+// use super::{apply_pooling, EmbeddingModel, ModelArchitecture, PoolingStrategy};
+use super::super::common::{EmbeddingModel, ModelArchitecture, PoolingStrategy};
+use super::encoder_utils::apply_pooling;
 use crate::training::hub::ModelPath;
 
 /// BERT model configured for generating sentence embeddings

@@ -18,10 +18,12 @@ use crate::embedding::backends::create_onnx_embedder;
 #[cfg(feature = "training")]
 use crate::training::{
     select_device, DatasetConfig, DevicePreference, LoraConfig, TrainingConfig, TrainingDataset,
-    load_bert_lora,
+    load_bert_lora, LoraModel,
 };
+
+
 #[cfg(feature = "training")]
-use crate::training::models::TokenizerWrapper;
+use crate::training::TokenizerWrapper;
 
 /// Execute the ingest command
 pub async fn ingest(
@@ -826,7 +828,7 @@ pub async fn eval_mc(
         // Load checkpoint if provided
         if let Some(ref ckpt_path) = checkpoint {
             tracing::info!("Loading LoRA checkpoint from: {}", ckpt_path);
-            lora_model.load_lora_checkpoint(ckpt_path)?;
+            lora_model.load_lora_checkpoint(std::path::Path::new(ckpt_path))?;
             println!("  Status: Fine-tuned model (checkpoint loaded)");
         } else {
             println!("  Status: Baseline model (no checkpoint)");
@@ -850,13 +852,7 @@ pub async fn eval_mc(
         println!("\n========================================");
         println!("Results");
         println!("========================================");
-        println!("  {}", result);
-        println!("----------------------------------------");
-        println!("  Total examples: {}", result.total);
-        println!("  Correct (Top-1): {}", result.correct);
-        println!("  Accuracy: {:.2}%", result.accuracy * 100.0);
-        println!("  MRR: {:.4}", result.mrr);
-        println!("  Top-3 Accuracy: {:.2}%", result.top3_accuracy * 100.0);
+        println!("{}", result);
         println!("========================================\n");
 
         Ok(())

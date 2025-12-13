@@ -1,30 +1,4 @@
-//! Fine-tuning with LoRA/QLoRA
-//!
-//! Implements RAG-aware fine-tuning with grounding-aware loss using Candle.
-//!
-//! # Features
-//!
-//! This module requires the `training` feature to be enabled:
-//! ```bash
-//! cargo build --features training
-//! ```
-//!
-//! For GPU support:
-//! ```bash
-//! cargo build --features cuda    # NVIDIA GPU
-//! cargo build --features metal   # Apple GPU
-//! ```
-//!
-//! # Modules
-//!
-//! - `device` - CPU/CUDA/Metal device abstraction
-//! - `hub` - HuggingFace Hub integration
-//! - `models` - BERT-family model wrappers
-//! - `lora` - LoRA adapter implementation
-//! - `loss` - Loss functions (contrastive, grounding)
-//! - `optimizer` - AdamW optimizer
-//! - `trainer` - Training loop
-//! - `dataset` - Dataset loading and batching
+//! Fine-tuning and training utilities
 
 pub mod device;
 pub mod lora;
@@ -43,19 +17,46 @@ pub mod optimizer;
 #[cfg(feature = "training")]
 pub mod trainer;
 
-// Re-exports
-pub use device::DevicePreference;
-pub use lora::LoraConfig;
-#[cfg(feature = "training")]
-pub use device::select_device;
+// Re-exports for convenience
+pub use device::{DevicePreference, select_device, device_info, DeviceInfo};
+pub use lora::{LoraConfig, LoraStats};
+pub use loss::{ContrastiveLoss, ContrastiveLossConfig};
 
 #[cfg(feature = "training")]
-pub use dataset::{DatasetConfig, TrainingDataset, TrainingExample};
+pub use dataset::{
+    DatasetConfig, TrainingDataset, TrainingExample,
+};
+
 #[cfg(feature = "training")]
-pub use evaluation::{evaluate_multiple_choice, load_recipe_mpr_examples, MCExample, MultipleChoiceResult};
+pub use evaluation::{
+    evaluate_multiple_choice, evaluate_retrieval,
+    load_recipe_mpr_examples,
+    EvaluationResult, RecipeMprExample, RetrievalMetrics,
+};
+
 #[cfg(feature = "training")]
-pub use hub::HubApi;
+pub use models::{
+    // Main traits
+    EmbeddingModel, LoraModel, ModelArchitecture, PoolingStrategy,
+    // Loaders
+    UniversalModelLoader, load_any_model_lora, load_any_model_auto,
+    // Specific models
+    BertLoraModel, load_bert_lora,
+    // Tokenizer
+    TokenizerWrapper, EncodedInput, BatchEncodedInput,
+    // Utilities
+    detect_architecture,
+};
+
 #[cfg(feature = "training")]
-pub use models::{load_bert_lora, load_model, BertLoraModel};
+pub use optimizer::AdamW;
+
 #[cfg(feature = "training")]
-pub use trainer::{Trainer, TrainingConfig, TrainingResult};
+pub use trainer::{
+    Trainer, TrainingConfig, TrainingResult, TrainingMetrics,
+};
+
+#[cfg(feature = "training")]
+pub use hub::{
+    ModelLoader, ModelPath, HubModelConfig,
+};
