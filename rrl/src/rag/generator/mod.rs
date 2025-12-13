@@ -4,9 +4,11 @@
 
 pub mod candle;
 pub mod config;
+pub mod qwen2_cuda;
 
 pub use candle::CandleGenerator;
 pub use config::{GeneratorConfig, SamplingParams};
+pub use qwen2_cuda::{CudaQwen2Model, CudaQwen2Config, CudaRmsNorm};
 
 use anyhow::Result;
 

@@ -1,11 +1,13 @@
 //! Candle-based decoder model implementation
 //!
-//! Supports Qwen2.5 and other decoder architectures via the Candle ML framework.
+//! Supports Qwen2.5, Llama, and other decoder architectures via the Candle ML framework.
+//! Uses CUDA-compatible implementations for GPU acceleration.
 
 use anyhow::{Context, Result};
 use candle_core::{DType, Device, Tensor};
 use candle_nn::VarBuilder;
 use candle_transformers::generation::LogitsProcessor;
+use candle_transformers::models::llama::{Cache as LlamaCache, Config as LlamaConfig, Llama};
 use candle_transformers::models::qwen2::{Config as Qwen2Config, ModelForCausalLM as Qwen2Model};
 use std::path::Path;
 use std::sync::Mutex;
@@ -25,7 +27,10 @@ pub struct CandleGenerator {
 
 /// Enum for different model architectures
 enum GeneratorModel {
+    /// Qwen2 model (uses candle_transformers with CUDA support)
     Qwen2(Qwen2Model),
+    /// Llama model (uses candle_transformers)
+    Llama(Llama, LlamaCache),
 }
 
 impl CandleGenerator {
@@ -111,9 +116,86 @@ impl CandleGenerator {
             let model = Qwen2Model::new(&qwen_config, vb).context("Failed to create Qwen2 model")?;
 
             Ok(GeneratorModel::Qwen2(model))
+        } else if arch.contains("llama") || model_type.contains("llama") {
+            // Parse Llama config manually since LlamaConfig doesn't implement Deserialize
+            let hidden_size = model_config["hidden_size"].as_u64().unwrap_or(4096) as usize;
+            let intermediate_size = model_config["intermediate_size"].as_u64().unwrap_or(11008) as usize;
+            let vocab_size = model_config["vocab_size"].as_u64().unwrap_or(32000) as usize;
+            let num_hidden_layers = model_config["num_hidden_layers"].as_u64().unwrap_or(32) as usize;
+            let num_attention_heads = model_config["num_attention_heads"].as_u64().unwrap_or(32) as usize;
+            let num_key_value_heads = model_config["num_key_value_heads"].as_u64().unwrap_or(32) as usize;
+            let rms_norm_eps = model_config["rms_norm_eps"].as_f64().unwrap_or(1e-6);
+            let rope_theta = model_config["rope_theta"].as_f64().unwrap_or(10000.0) as f32;
+            let max_position_embeddings = model_config["max_position_embeddings"].as_u64().unwrap_or(4096) as usize;
+            let tie_word_embeddings = model_config["tie_word_embeddings"].as_bool().unwrap_or(false);
+
+            let llama_config = LlamaConfig {
+                hidden_size,
+                intermediate_size,
+                vocab_size,
+                num_hidden_layers,
+                num_attention_heads,
+                num_key_value_heads,
+                use_flash_attn: false,
+                rms_norm_eps,
+                rope_theta,
+                bos_token_id: model_config["bos_token_id"].as_u64().map(|v| v as u32),
+                eos_token_id: None, // Complex type, skip for now
+                rope_scaling: None, // Complex type, skip for now
+                max_position_embeddings,
+                tie_word_embeddings,
+            };
+
+            tracing::info!(
+                "Loading Llama: vocab={}, hidden={}, layers={}",
+                llama_config.vocab_size,
+                llama_config.hidden_size,
+                llama_config.num_hidden_layers
+            );
+
+            // Handle sharded weights for large models
+            let weight_files = {
+                // First check if it's a single file model
+                let single_file = model_path.path.join("model.safetensors");
+                if single_file.exists() {
+                    vec![single_file]
+                } else {
+                    // Look for sharded safetensors files
+                    let mut shards = Vec::new();
+                    for entry in std::fs::read_dir(&model_path.path)? {
+                        let entry = entry?;
+                        let path = entry.path();
+                        if path.extension().map(|e| e == "safetensors").unwrap_or(false) {
+                            if let Some(name) = path.file_name() {
+                                let name_str = name.to_string_lossy();
+                                if name_str.starts_with("model-") && name_str.contains("-of-") {
+                                    shards.push(path);
+                                }
+                            }
+                        }
+                    }
+                    if shards.is_empty() {
+                        anyhow::bail!("No model weight files found in {:?}", model_path.path);
+                    }
+                    shards.sort();
+                    tracing::info!("Found {} weight shards", shards.len());
+                    shards
+                }
+            };
+
+            let weight_refs: Vec<&std::path::Path> = weight_files.iter().map(|p| p.as_path()).collect();
+            let vb = unsafe {
+                VarBuilder::from_mmaped_safetensors(&weight_refs, dtype, device)
+                    .context("Failed to load model weights")?
+            };
+
+            let model = Llama::load(vb, &llama_config).context("Failed to create Llama model")?;
+            let cache = LlamaCache::new(true, dtype, &llama_config, device)?;
+
+            Ok(GeneratorModel::Llama(model, cache))
         } else {
             anyhow::bail!(
-                "Unsupported model architecture: {}. Supported: qwen2",
+                "Unsupported model architecture: {}. Supported: qwen2, llama",
                 arch
             )
         }
@@ -175,6 +257,9 @@ impl CandleGenerator {
                 match &mut *model_guard {
                     GeneratorModel::Qwen2(model) => {
                         model.forward(&input_tensor, pos)?
+                    }
+                    GeneratorModel::Llama(model, cache) => {
+                        model.forward(&input_tensor, pos, cache)?
                     }
                 }
             };

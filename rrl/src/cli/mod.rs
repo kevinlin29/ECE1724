@@ -485,6 +485,8 @@ pub async fn train(
     val_data: Option<String>,
     save_steps: usize,
     logging_steps: usize,
+    gradient_checkpointing: bool,
+    checkpoint_segment_size: usize,
 ) -> Result<()> {
     #[cfg(not(feature = "training"))]
     {
@@ -504,6 +506,8 @@ pub async fn train(
             val_data,
             save_steps,
             logging_steps,
+            gradient_checkpointing,
+            checkpoint_segment_size,
         );
         anyhow::bail!(
             "Training feature not enabled. Compile with: cargo build --features training"
@@ -527,6 +531,10 @@ pub async fn train(
         tracing::info!("  Warmup ratio: {}", warmup_ratio);
         tracing::info!("  Save steps: {}", save_steps);
         tracing::info!("  Logging steps: {}", logging_steps);
+        tracing::info!("  Gradient checkpointing: {}", if gradient_checkpointing { "enabled" } else { "disabled" });
+        if gradient_checkpointing {
+            tracing::info!("  Checkpoint segment size: {}", checkpoint_segment_size);
+        }
 
         // Create output directory
         let output_path = Path::new(&output);
@@ -569,6 +577,8 @@ pub async fn train(
             logging_steps,
             output_dir: output.clone(),
             max_seq_length,
+            gradient_checkpointing,
+            checkpoint_segment_size,
             ..Default::default()
         };
 

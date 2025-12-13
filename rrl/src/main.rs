@@ -121,6 +121,14 @@ enum Commands {
         /// Log every N steps
         #[arg(long, default_value = "100")]
         logging_steps: usize,
+
+        /// Enable gradient checkpointing for memory efficiency
+        #[arg(long)]
+        gradient_checkpointing: bool,
+
+        /// Checkpoint segment size (layers per segment, smaller = less memory)
+        #[arg(long, default_value = "2")]
+        checkpoint_segment_size: usize,
     },
 
     /// Build retrieval indexes from chunks and embeddings
@@ -389,6 +397,8 @@ async fn main() -> anyhow::Result<()> {
             val_data,
             save_steps,
             logging_steps,
+            gradient_checkpointing,
+            checkpoint_segment_size,
         } => {
             cli::train(
                 data,
@@ -406,6 +416,8 @@ async fn main() -> anyhow::Result<()> {
                 val_data,
                 save_steps,
                 logging_steps,
+                gradient_checkpointing,
+                checkpoint_segment_size,
             )
             .await?;
         }
@@ -526,6 +538,8 @@ async fn main() -> anyhow::Result<()> {
                     config.val_data.clone(),
                     config.save_steps,
                     config.logging_steps,
+                    false, // gradient_checkpointing (default off for TUI)
+                    2,     // checkpoint_segment_size (default)
                 )
                 .await?;
 

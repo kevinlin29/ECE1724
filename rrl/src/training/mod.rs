@@ -1,5 +1,6 @@
 //! Fine-tuning and training utilities
 
+pub mod checkpoint;
 pub mod device;
 pub mod lora;
 pub mod loss;
@@ -21,6 +22,11 @@ pub mod trainer;
 pub use device::{DevicePreference, select_device, device_info, DeviceInfo};
 pub use lora::{LoraConfig, LoraStats};
 pub use loss::{ContrastiveLoss, ContrastiveLossConfig};
+pub use checkpoint::{
+    CheckpointConfig, CheckpointMemoryStats, CheckpointedSequential,
+    enable_checkpointing, disable_checkpointing, is_checkpointing_enabled,
+    checkpoint_tensor,
+};
 
 #[cfg(feature = "training")]
 pub use dataset::{

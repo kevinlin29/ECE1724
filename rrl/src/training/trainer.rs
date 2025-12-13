@@ -12,6 +12,7 @@ use candle_nn::VarMap;
 use std::path::Path;
 use std::time::Instant;
 
+use super::checkpoint::{enable_checkpointing, disable_checkpointing, CheckpointMemoryStats};
 use super::dataset::{Batched, TrainingDataset};
 use super::loss::{ContrastiveLoss, ContrastiveLossConfig};
 use super::models::{EmbeddingModel, TokenizerWrapper};
@@ -46,6 +47,10 @@ pub struct TrainingConfig {
     pub temperature: f32,
     /// Maximum sequence length
     pub max_seq_length: usize,
+    /// Enable gradient checkpointing for memory efficiency
+    pub gradient_checkpointing: bool,
+    /// Number of layers per checkpoint segment (smaller = less memory, more compute)
+    pub checkpoint_segment_size: usize,
 }
 
 impl Default for TrainingConfig {
@@ -64,7 +69,26 @@ impl Default for TrainingConfig {
             output_dir: "./output".to_string(),
             temperature: 0.05,
             max_seq_length: 512,
+            gradient_checkpointing: false,
+            checkpoint_segment_size: 2,
         }
+    }
+}
+
+impl TrainingConfig {
+    /// Estimate memory savings from gradient checkpointing
+    pub fn estimate_checkpoint_memory(
+        &self,
+        hidden_size: usize,
+        num_layers: usize,
+    ) -> CheckpointMemoryStats {
+        CheckpointMemoryStats::estimate(
+            self.batch_size,
+            self.max_seq_length,
+            hidden_size,
+            num_layers,
+            self.checkpoint_segment_size,
+        )
     }
 }
 
@@ -209,6 +233,25 @@ impl Trainer {
         tracing::info!("  Total optimization steps: {}", total_steps);
         tracing::info!("  Learning rate: {}", self.config.learning_rate);
         tracing::info!("  Max gradient norm: {}", self.config.max_grad_norm);
+
+        // Enable/disable gradient checkpointing globally
+        if self.config.gradient_checkpointing {
+            enable_checkpointing();
+            tracing::info!("  Gradient checkpointing: ENABLED (segment_size={})", self.config.checkpoint_segment_size);
+
+            // Log memory estimation
+            let mem_stats = self.config.estimate_checkpoint_memory(
+                model.hidden_size(),
+                12, // Typical BERT layers, could be made configurable
+            );
+            tracing::info!("  Estimated memory savings: {:.1} MB ({:.1}%)",
+                mem_stats.memory_saved_mb,
+                mem_stats.memory_saved_mb / mem_stats.peak_without_checkpoint_mb * 100.0
+            );
+        } else {
+            disable_checkpointing();
+            tracing::info!("  Gradient checkpointing: disabled");
+        }
 
         // Create optimizer and scheduler
         let mut optimizer = self.create_optimizer()?;
