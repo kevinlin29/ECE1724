@@ -15,6 +15,10 @@ from pathlib import Path
 import uuid
 from datetime import datetime
 
+from pydantic import BaseModel
+from typing import Optional
+
+
 app = FastAPI(title="RRL Training Server", version="1.0.0")
 
 # CORS for React frontend
@@ -47,6 +51,28 @@ class TrainingConfig(BaseModel):
     warmup_ratio: float = 0.1
     save_steps: int = 500
     logging_steps: int = 10
+
+class IngestConfig(BaseModel):
+    input: str
+    output: str
+    chunk_size: int = 512
+    chunk_overlap: int = 50
+
+class EmbedConfig(BaseModel):
+    input: str
+    output: str
+    model: str = "BAAI/bge-base-en-v1.5"
+    batch_size: int = 32
+
+class IndexConfig(BaseModel):
+    embeddings: str
+    output: str
+    index_type: str = "hnsw"
+
+class QueryConfig(BaseModel):
+    index: str
+    query: str
+    top_k: int = 5
 
 class EvalConfig(BaseModel):
     model_name: str
@@ -192,6 +218,109 @@ async def start_training(config: TrainingConfig):
         "--save-steps", str(config.save_steps),
         "--logging-steps", str(config.logging_steps),
     ]
+
+@app.post("/rag/ingest")
+async def rag_ingest(config: IngestConfig):
+    """Ingest documents and create chunks"""
+    cmd = [
+        "cargo", "run", "--release", "--",
+        "ingest",
+        "--input", config.input,
+        "--output", config.output,
+        "--chunk-size", str(config.chunk_size),
+        "--chunk-overlap", str(config.chunk_overlap),
+    ]
+    
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    
+    if result.returncode != 0:
+        raise HTTPException(status_code=500, detail=result.stderr)
+    
+    # Parse output to get chunk count
+    chunks_count = 0
+    for line in result.stdout.split('\n'):
+        if "chunks" in line.lower():
+            try:
+                chunks_count = int(''.join(filter(str.isdigit, line)))
+            except:
+                pass
+    
+    return {
+        "status": "success",
+        "chunks_count": chunks_count,
+        "output": config.output
+    }
+
+@app.post("/rag/embed")
+async def rag_embed(config: EmbedConfig):
+    """Generate embeddings for chunks"""
+    cmd = [
+        "cargo", "run", "--release", "--",
+        "embed",
+        "--input", config.input,
+        "--output", config.output,
+        "--model", config.model,
+        "--batch-size", str(config.batch_size),
+    ]
+    
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    
+    if result.returncode != 0:
+        raise HTTPException(status_code=500, detail=result.stderr)
+    
+    return {
+        "status": "success",
+        "embeddings_count": 0,  # Parse from output
+        "output": config.output
+    }
+
+@app.post("/rag/index")
+async def rag_index(config: IndexConfig):
+    """Build vector index"""
+    cmd = [
+        "cargo", "run", "--release", "--",
+        "index", "build",
+        "--embeddings", config.embeddings,
+        "--output", config.output,
+        "--type", config.index_type,
+    ]
+    
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    
+    if result.returncode != 0:
+        raise HTTPException(status_code=500, detail=result.stderr)
+    
+    return {
+        "status": "success",
+        "index_path": config.output
+    }
+
+@app.post("/rag/query")
+async def rag_query(config: QueryConfig):
+    """Query the RAG system"""
+    cmd = [
+        "cargo", "run", "--release", "--",
+        "query",
+        "--index", config.index,
+        "--query", config.query,
+        "--top-k", str(config.top_k),
+    ]
+    
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    
+    if result.returncode != 0:
+        raise HTTPException(status_code=500, detail=result.stderr)
+    
+    # Parse results from output
+    results = []
+    # This would parse the actual output format from your Rust code
+    # For now, return a placeholder
+    
+    return {
+        "query": config.query,
+        "results": results,
+        "raw_output": result.stdout
+    }
     
     # Start training process
     process = subprocess.Popen(

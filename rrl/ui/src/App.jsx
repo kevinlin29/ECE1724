@@ -1,17 +1,22 @@
+// RRL Training Dashboard - Main App
+// src/App.jsx
+
 import React from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import { Activity, Database, Play, Settings, BarChart3, Upload } from 'lucide-react';
+import { Activity, Database, Play, Settings, BarChart3, Upload, BookOpen } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Models from './pages/Models';
 import Training from './pages/Training';
 import Evaluation from './pages/Evaluation';
 import Inference from './pages/Inference';
 import DataUpload from './pages/DataUpload';
+import RAG from './pages/RAG';
 
 function App() {
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-gray-50">
+        {/* Navigation */}
         <nav className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16">
@@ -26,13 +31,15 @@ function App() {
                   <NavLink to="/training" icon={Play}>Training</NavLink>
                   <NavLink to="/evaluation" icon={Settings}>Evaluation</NavLink>
                   <NavLink to="/inference" icon={Activity}>Inference</NavLink>
-                  <NavLink to="/upload" icon={Upload}>Upload Data</NavLink>
+                  <NavLink to="/rag" icon={BookOpen}>RAG</NavLink>
+                  <NavLink to="/upload" icon={Upload}>Upload</NavLink>
                 </div>
               </div>
             </div>
           </div>
         </nav>
 
+        {/* Main Content */}
         <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           <Routes>
             <Route path="/" element={<Dashboard />} />
@@ -40,6 +47,7 @@ function App() {
             <Route path="/training" element={<Training />} />
             <Route path="/evaluation" element={<Evaluation />} />
             <Route path="/inference" element={<Inference />} />
+            <Route path="/rag" element={<RAG />} />
             <Route path="/upload" element={<DataUpload />} />
           </Routes>
         </main>
