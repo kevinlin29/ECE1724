@@ -42,7 +42,7 @@ impl Bm25Retriever {
             anyhow::bail!("Cannot build index with empty chunks");
         }
 
-        tracing::info!("Building BM25 index: {} chunks", chunks.len());
+        tracing::debug!("Building BM25 index: {} chunks", chunks.len());
 
         // Create schema
         let mut schema_builder = Schema::builder();
@@ -77,7 +77,7 @@ impl Bm25Retriever {
         // Commit the index
         index_writer.commit()?;
 
-        tracing::info!("BM25 index committed");
+        tracing::debug!("BM25 index committed");
 
         // Create reader
         let reader = index
@@ -103,7 +103,7 @@ impl Bm25Retriever {
         let metadata_json = serde_json::to_string_pretty(&metadata)?;
         fs::write(metadata_path, metadata_json)?;
 
-        tracing::info!("BM25 index built successfully");
+        tracing::debug!("BM25 index built successfully");
 
         Ok(Self {
             index,
@@ -119,7 +119,7 @@ impl Bm25Retriever {
 
     /// Load the index from disk
     pub fn load(index_dir: &Path) -> Result<Self> {
-        tracing::info!("Loading BM25 index from {:?}", index_dir);
+        tracing::debug!("Loading BM25 index from {:?}", index_dir);
 
         // Load metadata
         let metadata_path = index_dir.join("metadata.json");
@@ -152,7 +152,7 @@ impl Bm25Retriever {
             .reload_policy(ReloadPolicy::OnCommitWithDelay)
             .try_into()?;
 
-        tracing::info!("BM25 index loaded: {} chunks", chunks.len());
+        tracing::debug!("BM25 index loaded: {} chunks", chunks.len());
 
         Ok(Self {
             index,

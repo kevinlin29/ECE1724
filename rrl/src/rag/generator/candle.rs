@@ -38,10 +38,10 @@ impl CandleGenerator {
     pub fn new(config: GeneratorConfig) -> Result<Self> {
         let device = select_device(config.device)?;
 
-        tracing::info!("Loading generator model: {}", config.model_id);
-        tracing::info!("  Device: {:?}", device);
-        tracing::info!("  Max new tokens: {}", config.max_new_tokens);
-        tracing::info!("  Dtype: {}", config.dtype);
+        tracing::debug!("Loading generator model: {}", config.model_id);
+        tracing::debug!("  Device: {:?}", device);
+        tracing::debug!("  Max new tokens: {}", config.max_new_tokens);
+        tracing::debug!("  Dtype: {}", config.dtype);
 
         // Load tokenizer
         let tokenizer = TokenizerWrapper::from_pretrained(&config.model_id)
@@ -56,7 +56,7 @@ impl CandleGenerator {
         // Load model
         let model = Self::load_model(&config, &device)?;
 
-        tracing::info!("Generator loaded successfully");
+        tracing::debug!("Generator loaded successfully");
 
         Ok(Self {
             model: Mutex::new(model),
@@ -65,6 +65,37 @@ impl CandleGenerator {
             device,
             eos_token_id,
         })
+    }
+
+    /// Find weight files in a model directory (handles both single and sharded weights)
+    fn find_weight_files(model_dir: &Path) -> Result<Vec<std::path::PathBuf>> {
+        // First check if it's a single file model
+        let single_file = model_dir.join("model.safetensors");
+        if single_file.exists() {
+            return Ok(vec![single_file]);
+        }
+
+        // Look for sharded safetensors files (model-00001-of-00004.safetensors pattern)
+        let mut shards = Vec::new();
+        for entry in std::fs::read_dir(model_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.extension().map(|e| e == "safetensors").unwrap_or(false) {
+                if let Some(name) = path.file_name() {
+                    let name_str = name.to_string_lossy();
+                    if name_str.starts_with("model-") && name_str.contains("-of-") {
+                        shards.push(path);
+                    }
+                }
+            }
+        }
+
+        if shards.is_empty() {
+            anyhow::bail!("No model weight files found in {:?}", model_dir);
+        }
+
+        shards.sort();
+        Ok(shards)
     }
 
     fn load_model(config: &GeneratorConfig, device: &Device) -> Result<GeneratorModel> {
@@ -95,21 +126,26 @@ impl CandleGenerator {
             .unwrap_or("")
             .to_lowercase();
 
-        tracing::info!("Detected architecture: {}, model_type: {}", arch, model_type);
+        tracing::debug!("Detected architecture: {}, model_type: {}", arch, model_type);
 
         if arch.contains("qwen2") || model_type.contains("qwen2") {
             let qwen_config: Qwen2Config = serde_json::from_str(&config_str)
                 .context("Failed to parse Qwen2 config")?;
 
-            tracing::info!(
+            tracing::debug!(
                 "Loading Qwen2: vocab={}, hidden={}, layers={}",
                 qwen_config.vocab_size,
                 qwen_config.hidden_size,
                 qwen_config.num_hidden_layers
             );
 
+            // Handle sharded weights for large models
+            let weight_files = Self::find_weight_files(&model_path.path)?;
+            tracing::debug!("Found {} weight file(s)", weight_files.len());
+
+            let weight_refs: Vec<&std::path::Path> = weight_files.iter().map(|p| p.as_path()).collect();
             let vb = unsafe {
-                VarBuilder::from_mmaped_safetensors(&[&model_path.weights_file], dtype, device)
+                VarBuilder::from_mmaped_safetensors(&weight_refs, dtype, device)
                     .context("Failed to load model weights")?
             };
 
@@ -146,7 +182,7 @@ impl CandleGenerator {
                 tie_word_embeddings,
             };
 
-            tracing::info!(
+            tracing::debug!(
                 "Loading Llama: vocab={}, hidden={}, layers={}",
                 llama_config.vocab_size,
                 llama_config.hidden_size,
@@ -154,34 +190,8 @@ impl CandleGenerator {
             );
 
             // Handle sharded weights for large models
-            let weight_files = {
-                // First check if it's a single file model
-                let single_file = model_path.path.join("model.safetensors");
-                if single_file.exists() {
-                    vec![single_file]
-                } else {
-                    // Look for sharded safetensors files
-                    let mut shards = Vec::new();
-                    for entry in std::fs::read_dir(&model_path.path)? {
-                        let entry = entry?;
-                        let path = entry.path();
-                        if path.extension().map(|e| e == "safetensors").unwrap_or(false) {
-                            if let Some(name) = path.file_name() {
-                                let name_str = name.to_string_lossy();
-                                if name_str.starts_with("model-") && name_str.contains("-of-") {
-                                    shards.push(path);
-                                }
-                            }
-                        }
-                    }
-                    if shards.is_empty() {
-                        anyhow::bail!("No model weight files found in {:?}", model_path.path);
-                    }
-                    shards.sort();
-                    tracing::info!("Found {} weight shards", shards.len());
-                    shards
-                }
-            };
+            let weight_files = Self::find_weight_files(&model_path.path)?;
+            tracing::debug!("Found {} weight file(s)", weight_files.len());
 
             let weight_refs: Vec<&std::path::Path> = weight_files.iter().map(|p| p.as_path()).collect();
             let vb = unsafe {

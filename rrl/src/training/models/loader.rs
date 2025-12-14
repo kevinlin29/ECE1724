@@ -5,6 +5,7 @@ use candle_core::Device;
 use candle_nn::VarMap;
 
 use super::common::{detect_architecture, LoraModel, ModelArchitecture};
+use super::decoders::DecoderLoraModel;
 use super::encoders::{BertLoraModel, RobertaLoraModel};
 use crate::training::hub::{HubModelConfig, ModelLoader as HubLoader};
 use crate::training::lora::LoraConfig;
@@ -33,6 +34,7 @@ impl UniversalModelLoader {
         tracing::info!("Loading {} model: {}", arch, model_id_or_path);
         
         match arch {
+            // Encoder models
             ModelArchitecture::Bert => {
                 let model = BertLoraModel::from_model_path(&model_path, lora_config, var_map, device)?;
                 Ok(Box::new(model))
@@ -44,6 +46,12 @@ impl UniversalModelLoader {
             ModelArchitecture::DistilBert | ModelArchitecture::Albert => {
                 tracing::warn!("{} using BERT implementation", arch);
                 let model = BertLoraModel::from_model_path(&model_path, lora_config, var_map, device)?;
+                Ok(Box::new(model))
+            }
+            // Decoder models (LLMs)
+            ModelArchitecture::Qwen2 | ModelArchitecture::Llama | ModelArchitecture::Mistral => {
+                tracing::info!("Loading decoder model with LoRA: {}", arch);
+                let model = DecoderLoraModel::from_model_path(&model_path, lora_config, var_map, device)?;
                 Ok(Box::new(model))
             }
             _ => Err(anyhow::anyhow!("Architecture {} not yet supported", arch)),

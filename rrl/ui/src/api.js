@@ -106,10 +106,96 @@ const api = {
     return response.data;
   },
 
+  // Full RAG with LLM generation
+  ragGenerate: async (config) => {
+    const response = await axios.post(`${API_URL}/rag/generate`, config, {
+      timeout: 300000,  // 5 min timeout for LLM generation
+    });
+    return response.data;
+  },
+
+  // Full RAG pipeline: ingest → embed → index
+  ragPipeline: async (config) => {
+    const response = await axios.post(`${API_URL}/rag/pipeline`, config, {
+      timeout: 600000,  // 10 min timeout for full pipeline
+    });
+    return response.data;
+  },
+
+  // Generator Model Management
+  listGeneratorModels: async () => {
+    const response = await axios.get(`${API_URL}/generator-models`);
+    return response.data;
+  },
+
+  addGeneratorModel: async (name, path, architecture = 'auto') => {
+    const response = await axios.post(`${API_URL}/generator-models`, {
+      name,
+      path,
+      architecture,
+    });
+    return response.data;
+  },
+
+  removeGeneratorModel: async (modelName) => {
+    const response = await axios.delete(`${API_URL}/generator-models/${encodeURIComponent(modelName)}`);
+    return response.data;
+  },
+
+  getGeneratorModel: async (modelName) => {
+    const response = await axios.get(`${API_URL}/generator-models/${encodeURIComponent(modelName)}`);
+    return response.data;
+  },
+
+  scanFinetunedModels: async (outputDir = './output') => {
+    const response = await axios.post(`${API_URL}/generator-models/scan`, null, {
+      params: { output_dir: outputDir }
+    });
+    return response.data;
+  },
+
   // Health
   health: async () => {
     const response = await axios.get(`${API_URL}/health`);
     return response.data;
+  },
+
+  // WebSocket for live training updates
+  connectTrainingWebSocket: (onLog, onComplete, onError) => {
+    const WS_URL = API_URL.replace('http', 'ws');
+    const ws = new WebSocket(`${WS_URL}/ws`);
+
+    ws.onopen = () => {
+      console.log('WebSocket connected for training updates');
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'training_log') {
+          onLog(data.log, data.metrics, data.job_id, data.is_error);
+        } else if (data.type === 'training_complete') {
+          onComplete(data.job_id, data.status, data.error);
+        }
+      } catch (e) {
+        console.error('Failed to parse WebSocket message:', e);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      if (onError) onError(error);
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+    };
+
+    // Return control object
+    return {
+      close: () => ws.close(),
+      send: (msg) => ws.send(JSON.stringify(msg)),
+    };
   },
 };
 

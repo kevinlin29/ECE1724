@@ -18,7 +18,7 @@ use crate::embedding::backends::create_onnx_embedder;
 #[cfg(feature = "training")]
 use crate::training::{
     select_device, DatasetConfig, DevicePreference, LoraConfig, TrainingConfig, TrainingDataset,
-    load_bert_lora, LoraModel,
+    LoraModel,
 };
 
 
@@ -594,10 +594,11 @@ pub async fn train(
             lora_config.scaling()
         );
 
-        // Load BERT model with LoRA using trainer's VarMap
+        // Load model with LoRA using trainer's VarMap
         // This registers LoRA parameters as trainable
-        tracing::info!("Loading BERT model with LoRA from: {}", model);
-        let lora_model = load_bert_lora(&model, &lora_config, trainer.var_map(), &candle_device)?;
+        // Supports both encoder (BERT, RoBERTa) and decoder (Qwen2, LLaMA, Mistral) models
+        tracing::info!("Loading model with LoRA from: {}", model);
+        let lora_model = crate::training::load_any_model_lora(&model, &lora_config, trainer.var_map(), &candle_device)?;
 
         tracing::info!(
             "Model loaded: {} trainable params / ~{} total params ({:.4}%)",
@@ -613,7 +614,7 @@ pub async fn train(
 
         // Train with progress callback
         let result = trainer.train(
-            &lora_model,
+            &*lora_model,
             &tokenizer,
             &train_dataset,
             val_dataset.as_ref(),
@@ -892,19 +893,18 @@ pub async fn rag(
         RetrievalStrategy, SamplingParams,
     };
 
-    tracing::info!("Starting RAG pipeline");
-    tracing::info!("  Index: {}", index);
-    tracing::info!("  Generator: {}", generator_model);
-    tracing::info!("  Embedder: {}", embedder_model);
-    tracing::info!("  Top-K: {}", top_k);
-    tracing::info!("  Retriever: {}", retriever_type);
-    tracing::info!("  Device: {}", device);
+    tracing::debug!("Starting RAG pipeline");
+    tracing::debug!("  Index: {}", index);
+    tracing::debug!("  Generator: {}", generator_model);
+    tracing::debug!("  Embedder: {}", embedder_model);
+    tracing::debug!("  Top-K: {}", top_k);
+    tracing::debug!("  Retriever: {}", retriever_type);
+    tracing::debug!("  Device: {}", device);
 
     // Parse device preference
     let device_pref: DevicePreference = device.parse()?;
 
-    // Load embedder
-    println!("Loading embedder model...");
+    // Load embedder (silent)
     let mut embedder_config = CandleBertConfig::new(&embedder_model)
         .with_device(device_pref.clone());
 
@@ -914,8 +914,7 @@ pub async fn rag(
 
     let embedder: Arc<dyn crate::embedding::Embedder> = Arc::new(CandleBertEmbedder::new(embedder_config)?);
 
-    // Load retriever
-    println!("Loading retriever...");
+    // Load retriever (silent)
     let index_path = Path::new(&index);
     let hnsw_dir = index_path.join("hnsw");
     let bm25_dir = index_path.join("bm25");
@@ -954,8 +953,7 @@ pub async fn rag(
         _ => anyhow::bail!("Unknown retriever type: {}", retriever_type),
     };
 
-    // Load generator
-    println!("Loading generator model...");
+    // Load generator (silent)
     let mut generator_config = GeneratorConfig::new(&generator_model)
         .with_device(device_pref)
         .with_max_new_tokens(max_tokens);
@@ -966,8 +964,7 @@ pub async fn rag(
 
     let generator = Generator::new(generator_config)?;
 
-    // Build pipeline
-    println!("Building RAG pipeline...");
+    // Build pipeline (silent)
     let sampling_params = SamplingParams::default()
         .with_temperature(temperature)
         .with_max_new_tokens(max_tokens);
@@ -987,8 +984,6 @@ pub async fn rag(
         .generator(generator)
         .config(rag_config)
         .build()?;
-
-    println!("RAG pipeline ready!\n");
 
     // Execute query or enter interactive mode
     if let Some(query_text) = query {
@@ -1034,10 +1029,7 @@ fn execute_rag_query(
     use crate::rag::RagQuery;
 
     let query = RagQuery::new(query_text).with_top_k(top_k);
-
-    println!("Retrieving documents...");
     let start = std::time::Instant::now();
-
     let response = pipeline.query(query)?;
     let total_time = start.elapsed().as_millis();
 

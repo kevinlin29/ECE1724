@@ -31,12 +31,15 @@
 pub mod data;
 pub mod embedding;
 pub mod retrieval;
-pub mod training;
 pub mod evaluation;
 pub mod server;
 pub mod cli;
 pub mod utils;
 pub mod tui;
+
+// Training module (requires candle)
+#[cfg(feature = "training")]
+pub mod training;
 
 // RAG pipeline module
 #[cfg(feature = "training")]

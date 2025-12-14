@@ -150,11 +150,11 @@ impl CandleBertEmbedder {
     pub fn new(config: CandleBertConfig) -> Result<Self> {
         let device = select_device(config.device.clone())?;
 
-        tracing::info!("Loading Candle BERT embedder: {}", config.model_id);
-        tracing::info!("  Device: {:?}", device);
-        tracing::info!("  LoRA rank: {}, alpha: {}", config.lora_rank, config.lora_alpha);
+        tracing::debug!("Loading Candle BERT embedder: {}", config.model_id);
+        tracing::debug!("  Device: {:?}", device);
+        tracing::debug!("  LoRA rank: {}, alpha: {}", config.lora_rank, config.lora_alpha);
         if let Some(ref ckpt) = config.lora_checkpoint {
-            tracing::info!("  LoRA checkpoint: {:?}", ckpt);
+            tracing::debug!("  LoRA checkpoint: {:?}", ckpt);
         }
 
         // Load tokenizer
@@ -180,12 +180,12 @@ impl CandleBertEmbedder {
         if let Some(ref checkpoint_path) = config.lora_checkpoint {
             model.load_lora_checkpoint(checkpoint_path)
                 .context("Failed to load LoRA checkpoint")?;
-            tracing::info!("Loaded fine-tuned LoRA weights");
+            tracing::debug!("Loaded fine-tuned LoRA weights");
         }
 
         let hidden_size = model.hidden_size();
 
-        tracing::info!("Candle BERT embedder loaded (dim={})", hidden_size);
+        tracing::debug!("Candle BERT embedder loaded (dim={})", hidden_size);
 
         Ok(Self {
             model,
@@ -336,7 +336,7 @@ pub fn auto_detect_embedder(
     if let Some(ckpt_path) = checkpoint_override {
         let path = PathBuf::from(ckpt_path);
         if path.exists() {
-            tracing::info!("Using specified checkpoint: {:?}", path);
+            tracing::debug!("Using specified checkpoint: {:?}", path);
             config = config.with_lora_checkpoint(ckpt_path);
             return Ok(Arc::new(CandleBertEmbedder::new(config)?));
         } else {
@@ -355,7 +355,7 @@ pub fn auto_detect_embedder(
     for search_path in &search_paths {
         let path = PathBuf::from(search_path);
         if path.exists() {
-            tracing::info!("Auto-detected checkpoint: {:?}", path);
+            tracing::debug!("Auto-detected checkpoint: {:?}", path);
             config = config.with_lora_checkpoint(search_path);
             return Ok(Arc::new(CandleBertEmbedder::new(config)?));
         }
@@ -368,7 +368,7 @@ pub fn auto_detect_embedder(
             if path.is_dir() {
                 let checkpoint = path.join("lora_checkpoint.safetensors");
                 if checkpoint.exists() {
-                    tracing::info!("Auto-detected checkpoint: {:?}", checkpoint);
+                    tracing::debug!("Auto-detected checkpoint: {:?}", checkpoint);
                     config = config.with_lora_checkpoint(checkpoint.to_str().unwrap_or_default());
                     return Ok(Arc::new(CandleBertEmbedder::new(config)?));
                 }
@@ -377,7 +377,7 @@ pub fn auto_detect_embedder(
     }
 
     // Fall back to base model
-    tracing::info!("No fine-tuned checkpoint found, using base model");
+    tracing::debug!("No fine-tuned checkpoint found, using base model");
     Ok(Arc::new(CandleBertEmbedder::new(config)?))
 }
 

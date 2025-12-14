@@ -53,10 +53,10 @@ pub fn select_device(preference: DevicePreference) -> Result<Device> {
         DevicePreference::Cuda => {
             #[cfg(feature = "cuda")]
             {
-                tracing::info!("Attempting to use CUDA device...");
+                tracing::debug!("Attempting to use CUDA device...");
                 match Device::new_cuda(0) {
                     Ok(device) => {
-                        tracing::info!("✓ CUDA device selected");
+                        tracing::debug!("✓ CUDA device selected");
                         Ok(device)
                     }
                     Err(e) => {
@@ -77,10 +77,10 @@ pub fn select_device(preference: DevicePreference) -> Result<Device> {
         DevicePreference::Metal => {
             #[cfg(feature = "metal")]
             {
-                tracing::info!("Attempting to use Metal device...");
+                tracing::debug!("Attempting to use Metal device...");
                 match Device::new_metal(0) {
                     Ok(device) => {
-                        tracing::info!("✓ Metal device selected");
+                        tracing::debug!("✓ Metal device selected");
                         Ok(device)
                     }
                     Err(e) => {
@@ -99,17 +99,17 @@ pub fn select_device(preference: DevicePreference) -> Result<Device> {
         }
 
         DevicePreference::Cpu => {
-            tracing::info!("✓ CPU device selected");
+            tracing::debug!("✓ CPU device selected");
             Ok(Device::Cpu)
         }
 
         DevicePreference::Auto => {
-            tracing::info!("Auto-selecting best available device...");
+            tracing::debug!("Auto-selecting best available device...");
 
             #[cfg(feature = "cuda")]
             {
                 if let Ok(device) = Device::new_cuda(0) {
-                    tracing::info!("✓ Auto-selected: CUDA GPU");
+                    tracing::debug!("✓ Auto-selected: CUDA GPU");
                     return Ok(device);
                 }
             }
@@ -117,12 +117,12 @@ pub fn select_device(preference: DevicePreference) -> Result<Device> {
             #[cfg(feature = "metal")]
             {
                 if let Ok(device) = Device::new_metal(0) {
-                    tracing::info!("✓ Auto-selected: Metal GPU (Apple Silicon)");
+                    tracing::debug!("✓ Auto-selected: Metal GPU (Apple Silicon)");
                     return Ok(device);
                 }
             }
 
-            tracing::info!("✓ Auto-selected: CPU");
+            tracing::debug!("✓ Auto-selected: CPU");
             Ok(Device::Cpu)
         }
     }

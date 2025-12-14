@@ -28,11 +28,16 @@ pub trait LoraModel: EmbeddingModel {
 /// Model architecture types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ModelArchitecture {
+    // Encoder models
     Bert,
     Roberta,
     DistilBert,
     Albert,
     DeBERTa,
+    // Decoder models (LLMs)
+    Qwen2,
+    Llama,
+    Mistral,
 }
 
 impl std::fmt::Display for ModelArchitecture {
@@ -43,7 +48,22 @@ impl std::fmt::Display for ModelArchitecture {
             Self::DistilBert => write!(f, "distilbert"),
             Self::Albert => write!(f, "albert"),
             Self::DeBERTa => write!(f, "deberta"),
+            Self::Qwen2 => write!(f, "qwen2"),
+            Self::Llama => write!(f, "llama"),
+            Self::Mistral => write!(f, "mistral"),
         }
+    }
+}
+
+impl ModelArchitecture {
+    /// Returns true if this is a decoder-only (causal LM) architecture
+    pub fn is_decoder(&self) -> bool {
+        matches!(self, Self::Qwen2 | Self::Llama | Self::Mistral)
+    }
+
+    /// Returns true if this is an encoder-only architecture
+    pub fn is_encoder(&self) -> bool {
+        !self.is_decoder()
     }
 }
 
@@ -62,8 +82,21 @@ pub fn detect_architecture(
     model_type: Option<&str>,
     architectures: &[String],
 ) -> Result<ModelArchitecture> {
+    // Check model_type field first
     if let Some(mt) = model_type {
-        match mt.to_lowercase().as_str() {
+        let mt_lower = mt.to_lowercase();
+        // Decoder models (check first as they're more specific)
+        if mt_lower.contains("qwen") {
+            return Ok(ModelArchitecture::Qwen2);
+        }
+        if mt_lower.contains("llama") {
+            return Ok(ModelArchitecture::Llama);
+        }
+        if mt_lower.contains("mistral") {
+            return Ok(ModelArchitecture::Mistral);
+        }
+        // Encoder models
+        match mt_lower.as_str() {
             "bert" => return Ok(ModelArchitecture::Bert),
             "roberta" | "xlm-roberta" | "camembert" => return Ok(ModelArchitecture::Roberta),
             "distilbert" => return Ok(ModelArchitecture::DistilBert),
@@ -72,9 +105,21 @@ pub fn detect_architecture(
             _ => {}
         }
     }
-    
+
+    // Check architectures list
     for arch in architectures {
         let arch_lower = arch.to_lowercase();
+        // Decoder models
+        if arch_lower.contains("qwen") {
+            return Ok(ModelArchitecture::Qwen2);
+        }
+        if arch_lower.contains("llama") {
+            return Ok(ModelArchitecture::Llama);
+        }
+        if arch_lower.contains("mistral") {
+            return Ok(ModelArchitecture::Mistral);
+        }
+        // Encoder models
         if arch_lower.contains("roberta") {
             return Ok(ModelArchitecture::Roberta);
         }
@@ -91,7 +136,7 @@ pub fn detect_architecture(
             return Ok(ModelArchitecture::Bert);
         }
     }
-    
+
     anyhow::bail!(
         "Could not detect model architecture from type={:?}, architectures={:?}",
         model_type,

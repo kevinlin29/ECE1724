@@ -35,7 +35,7 @@ impl BertLoraModel {
         let config_str = std::fs::read_to_string(&model_path.config_file)?;
         let config: CudaBertConfig = serde_json::from_str(&config_str)?;
 
-        tracing::info!(
+        tracing::debug!(
             "Loading BERT with LoRA: hidden_size={}, layers={}, lora_rank={}",
             config.hidden_size, config.num_hidden_layers, lora_config.rank
         );
@@ -75,7 +75,7 @@ impl BertLoraModel {
             Init::Const(0.0),
         )?;
 
-        tracing::info!("Created LoRA adapters: {} params", rank * hidden_size * 2);
+        tracing::debug!("Created LoRA adapters: {} params", rank * hidden_size * 2);
 
         Ok(Self {
             base_model,
@@ -182,7 +182,7 @@ impl LoraModel for BertLoraModel {
     }
     
     fn load_lora_checkpoint(&mut self, path: &Path) -> Result<()> {
-        tracing::info!("Loading LoRA checkpoint from: {:?}", path);
+        tracing::debug!("Loading LoRA checkpoint from: {:?}", path);
         let tensors = candle_core::safetensors::load(path, &self.device)?;
         
         self.lora_down = tensors.get("lora_projection.down")
@@ -192,14 +192,14 @@ impl LoraModel for BertLoraModel {
             .ok_or_else(|| anyhow::anyhow!("Missing lora_projection.up"))?
             .clone();
         
-        tracing::info!("Successfully loaded LoRA checkpoint");
+        tracing::debug!("Successfully loaded LoRA checkpoint");
         Ok(())
     }
     
     fn save_lora_checkpoint(&self, path: &Path) -> Result<()> {
         use std::collections::HashMap;
         
-        tracing::info!("Saving LoRA checkpoint to: {:?}", path);
+        tracing::debug!("Saving LoRA checkpoint to: {:?}", path);
         
         let lora_down_cpu = self.lora_down.to_device(&Device::Cpu)?;
         let lora_up_cpu = self.lora_up.to_device(&Device::Cpu)?;
@@ -210,7 +210,7 @@ impl LoraModel for BertLoraModel {
         
         candle_core::safetensors::save(&tensors, path)?;
         
-        tracing::info!("Successfully saved LoRA checkpoint");
+        tracing::debug!("Successfully saved LoRA checkpoint");
         Ok(())
     }
 }

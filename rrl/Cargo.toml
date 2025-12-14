@@ -101,5 +101,5 @@ training = [
 ]
 
 # GPU acceleration for training
-cuda = ["training", "candle-core/cuda"]
+cuda = ["training", "candle-core/cuda", "candle-transformers/cuda"]
 metal = ["training", "candle-core/metal"]

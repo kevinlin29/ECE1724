@@ -27,7 +27,7 @@ impl HubApi {
     /// # Returns
     /// * `ModelPath` - Information about the downloaded model location
     pub fn download_model(&self, model_id: &str) -> Result<ModelPath> {
-        tracing::info!("Downloading model from HuggingFace Hub: {}", model_id);
+        tracing::debug!("Downloading model from HuggingFace Hub: {}", model_id);
 
         let repo = self.api.model(model_id.to_string());
 
@@ -357,7 +357,7 @@ impl ModelLoader {
             || model_id_or_path.starts_with('~');
 
         if is_local && local_path.exists() {
-            tracing::info!("Loading model from local path: {}", model_id_or_path);
+            tracing::debug!("Loading model from local path: {}", model_id_or_path);
             ModelPath::from_local(model_id_or_path)
         } else if is_local {
             // Starts with ., /, or ~ but doesn't exist
@@ -367,7 +367,7 @@ impl ModelLoader {
             ))
         } else {
             // Treat as HuggingFace model ID (e.g., "bert-base-uncased" or "sentence-transformers/all-MiniLM-L6-v2")
-            tracing::info!("Downloading model from HuggingFace Hub: {}", model_id_or_path);
+            tracing::debug!("Downloading model from HuggingFace Hub: {}", model_id_or_path);
             self.hub.download_model(model_id_or_path)
         }
     }

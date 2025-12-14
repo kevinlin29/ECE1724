@@ -4,10 +4,7 @@ pub mod common;
 pub mod loader;
 pub mod tokenizer;
 pub mod encoders;
-
-// Future modules
-// pub mod decoders;
-// pub mod encoder_decoder;
+pub mod decoders;
 
 // Re-exports for convenience
 pub use common::{
@@ -25,5 +22,5 @@ pub use encoders::{
     load_bert_lora,
 };
 
-// When you add RoBERTa:
-// pub use encoders::RobertaLoraModel;
+// Re-export decoder models
+pub use decoders::{DecoderConfig, DecoderLoraModel, load_decoder_lora};

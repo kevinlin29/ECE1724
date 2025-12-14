@@ -69,7 +69,7 @@ impl HnswRetriever {
         }
 
         let dimension = embeddings[0].len();
-        tracing::info!(
+        tracing::debug!(
             "Building HNSW index: {} chunks, {} dimensions",
             chunks.len(),
             dimension
@@ -104,7 +104,7 @@ impl HnswRetriever {
             created_at: chrono::Utc::now().to_rfc3339(),
         };
 
-        tracing::info!("HNSW index built successfully");
+        tracing::debug!("HNSW index built successfully");
 
         Ok(Self {
             hnsw,
@@ -135,7 +135,7 @@ impl HnswRetriever {
         let metadata_json = serde_json::to_string_pretty(&self.metadata)?;
         fs::write(metadata_path, metadata_json)?;
 
-        tracing::info!("HNSW index metadata saved to {:?}", index_dir);
+        tracing::debug!("HNSW index metadata saved to {:?}", index_dir);
         tracing::warn!("Note: HNSW index will be rebuilt on next load from embeddings");
         Ok(())
     }
@@ -143,7 +143,7 @@ impl HnswRetriever {
     /// Load index from disk and rebuild HNSW from embeddings
     /// Note: This requires re-embedding all chunks, which can be slow for large indexes
     pub fn load(index_dir: &Path, embedder: Arc<dyn Embedder>) -> Result<Self> {
-        tracing::info!("Loading HNSW index from {:?}", index_dir);
+        tracing::debug!("Loading HNSW index from {:?}", index_dir);
 
         // Load metadata first
         let metadata_path = index_dir.join("metadata.json");
@@ -174,7 +174,7 @@ impl HnswRetriever {
 
         // Rebuild HNSW index from chunks
         // We need to re-embed all chunks to rebuild the index
-        tracing::info!("Rebuilding HNSW index from {} chunks", chunks_map.len());
+        tracing::debug!("Rebuilding HNSW index from {} chunks", chunks_map.len());
 
         let mut chunks_vec: Vec<Chunk> = chunks_map.values().cloned().collect();
         // Sort by chunk_id to ensure consistent ordering

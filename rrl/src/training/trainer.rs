@@ -9,13 +9,14 @@
 use anyhow::{Context, Result};
 use candle_core::{Device, Tensor};
 use candle_nn::VarMap;
+use std::io::Write;
 use std::path::Path;
 use std::time::Instant;
 
 use super::checkpoint::{enable_checkpointing, disable_checkpointing, CheckpointMemoryStats};
 use super::dataset::{Batched, TrainingDataset};
 use super::loss::{ContrastiveLoss, ContrastiveLossConfig};
-use super::models::{EmbeddingModel, TokenizerWrapper};
+use super::models::{EmbeddingModel, LoraModel, TokenizerWrapper};
 use super::optimizer::{AdamW, AdamWConfig, LearningRateScheduler};
 
 /// Training configuration
@@ -212,10 +213,12 @@ impl Trainer {
     }
 
     /// Train the model on the dataset
+    ///
+    /// Supports both encoder (BERT, RoBERTa) and decoder (Qwen2, LLaMA, Mistral) models.
     #[allow(unused_variables, unused_assignments)]
     pub fn train(
         &mut self,
-        model: &dyn EmbeddingModel,
+        model: &dyn LoraModel,
         tokenizer: &TokenizerWrapper,
         dataset: &TrainingDataset,
         eval_dataset: Option<&TrainingDataset>,
@@ -365,6 +368,8 @@ impl Trainer {
                 // Logging
                 if metrics.global_step > 0 && metrics.global_step % self.config.logging_steps == 0 {
                     tracing::info!("{}", metrics);
+                    // Flush to ensure real-time log streaming to UI
+                    let _ = std::io::stderr().flush();
                     if let Some(ref callback) = progress_callback {
                         callback(&metrics);
                     }
@@ -386,6 +391,7 @@ impl Trainer {
                     if let Some(eval_ds) = eval_dataset {
                         let eval_loss = self.evaluate(model, tokenizer, eval_ds, &loss_fn)?;
                         tracing::info!("Evaluation loss: {:.4}", eval_loss);
+                        let _ = std::io::stderr().flush();
                     }
                 }
             }
@@ -404,6 +410,7 @@ impl Trainer {
                 avg_epoch_loss,
                 epoch_samples
             );
+            let _ = std::io::stderr().flush();
         }
 
         // Save final checkpoint
