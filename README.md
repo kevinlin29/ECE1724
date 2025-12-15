@@ -527,5 +527,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Web UI:** http://localhost:5173
 - **API Docs:** http://localhost:8000/docs
 - **Original Proposal:** [Proposal.md](Proposal.md)
+- **Youtube Video:** https://youtu.be/0vOJnGV3A2s
 
 ---
