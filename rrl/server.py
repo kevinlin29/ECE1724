@@ -212,3 +212,40 @@ def parse_generation_output(output: str) -> str:
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+# ------------------------
+# UI Compatibility Stubs
+# ------------------------
+
+@app.get("/models")
+async def list_models():
+    return {"models": []}
+
+@app.get("/generator-models")
+async def list_generator_models():
+    return {"models": []}
+
+@app.get("/trainings")
+async def list_trainings():
+    return {"trainings": []}
+
+@app.get("/checkpoints")
+async def list_checkpoints(output_dir: str = "./outputs"):
+    return {"checkpoints": []}
+# ------------------------
+# WebSocket (UI heartbeat)
+# ------------------------
+
+@app.websocket("/ws")
+async def websocket_endpoint(ws: WebSocket):
+    await ws.accept()
+    try:
+        while True:
+            await ws.receive_text()
+            await ws.send_json({"type": "pong"})
+    except WebSocketDisconnect:
+        pass
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
