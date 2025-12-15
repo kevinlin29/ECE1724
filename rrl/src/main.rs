@@ -323,6 +323,9 @@ enum Commands {
         #[arg(long, default_value = "auto")]
         device: String,
     },
+
+    /// Run inference on a model (embedding or generation)
+    Infer(cli::InferArgs),
 }
 
 #[tokio::main]
@@ -577,6 +580,10 @@ async fn main() -> anyhow::Result<()> {
             } else {
                 println!("Training cancelled by user");
             }
+        }
+
+        Commands::Infer(args) => {
+            cli::infer(args).await?;
         }
     }
 

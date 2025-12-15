@@ -1,6 +1,7 @@
 //! Command-line interface
 //!
 //! Provides CLI commands for ingest, embed, train, eval, and serve.
+pub mod infer;
 
 use crate::data::{Chunk, ChunkConfig, Chunker, MultiFormatLoader, OverlappingChunker};
 use crate::embedding::{create_embedder, Embedding, EmbeddingCache, EmbeddingConfig};
@@ -11,6 +12,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
+pub use infer::InferArgs;
 
 #[cfg(feature = "onnx-backend")]
 use crate::embedding::backends::create_onnx_embedder;
@@ -1064,3 +1066,9 @@ fn execute_rag_query(
 
     Ok(())
 }
+
+/// Execute the infer command - run inference on a model
+pub async fn infer(args: InferArgs) -> Result<()> {
+    crate::cli::infer::run(args)
+}
+
