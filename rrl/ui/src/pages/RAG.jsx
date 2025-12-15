@@ -264,7 +264,11 @@ function SetupPanel({ loading, setLoading, result, setResult, error, setError })
 }
 
 // Query Panel
-function QueryPanel({ loading, setLoading, result, setResult, error, setError }) {
+function QueryPanel({ loading: parentLoading, setLoading: setParentLoading, result: parentResult, setResult: setParentResult, error: parentError, setError: setParentError }) {
+  // Use local state for this panel to avoid conflicts with other panels
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
   const [config, setConfig] = useState({
     index: './data/index',
     query: '',
@@ -419,7 +423,7 @@ function QueryPanel({ loading, setLoading, result, setResult, error, setError })
               Show raw output
             </summary>
             <pre className="mt-2 p-3 bg-gray-50 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap">
-              {result.raw_output}
+              {typeof result.raw_output === 'string' ? result.raw_output : JSON.stringify(result.raw_output, null, 2)}
             </pre>
           </details>
         </div>
@@ -429,7 +433,11 @@ function QueryPanel({ loading, setLoading, result, setResult, error, setError })
 }
 
 // Generate Panel - Full RAG with LLM
-function GeneratePanel({ loading, setLoading, result, setResult, error, setError }) {
+function GeneratePanel({ loading: parentLoading, setLoading: setParentLoading, result: parentResult, setResult: setParentResult, error: parentError, setError: setParentError }) {
+  // Use local state for this panel to avoid conflicts with other panels
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
   const [config, setConfig] = useState({
     index: './data/index',
     query: '',
@@ -439,10 +447,11 @@ function GeneratePanel({ loading, setLoading, result, setResult, error, setError
     embedder_checkpoint: '',
     top_k: 5,
     retriever: 'hybrid',
-    temperature: 0.7,
+    temperature: 0.3,  // lower temperature for more consistent outputs
     max_tokens: 512,
-    template: 'default',
+    template: 'simple',  // simple works better with small models like Qwen2.5-0.5B
     device: 'auto',
+    dtype: 'f32',  // f32 required for Qwen models, f16 may cause dtype mismatch errors
   });
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [models, setModels] = useState([]);
@@ -696,7 +705,7 @@ function GeneratePanel({ loading, setLoading, result, setResult, error, setError
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-3 gap-4 mt-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Retriever
@@ -721,11 +730,28 @@ function GeneratePanel({ loading, setLoading, result, setResult, error, setError
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   >
                     <option value="default">Default</option>
+                    <option value="simple">Simple (Small Models)</option>
+                    <option value="qwen">Qwen Chat Format</option>
                     <option value="concise">Concise</option>
                     <option value="detailed">Detailed</option>
                     <option value="recipe">Recipe</option>
                     <option value="chat">Chat</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Precision (dtype)
+                  </label>
+                  <select
+                    value={config.dtype}
+                    onChange={(e) => setConfig({...config, dtype: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="f32">F32 (Recommended)</option>
+                    <option value="f16">F16 (Half precision)</option>
+                    <option value="bf16">BF16 (Brain float)</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">F32 avoids dtype errors</p>
                 </div>
               </div>
             </div>
@@ -753,19 +779,19 @@ function GeneratePanel({ loading, setLoading, result, setResult, error, setError
             </div>
             <div className="prose prose-sm max-w-none">
               <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-                {result.answer}
+                {typeof result.answer === 'string' ? result.answer : JSON.stringify(result.answer, null, 2)}
               </p>
             </div>
           </div>
 
-          {result.sources && result.sources.length > 0 && (
+          {result.sources && Array.isArray(result.sources) && result.sources.length > 0 && (
             <div className="bg-gray-50 border rounded-lg p-4">
               <h4 className="text-sm font-medium text-gray-700 mb-2">Sources:</h4>
               <ul className="text-sm text-gray-600 space-y-1">
                 {result.sources.map((source, idx) => (
                   <li key={idx} className="flex items-center gap-2">
                     <span className="text-purple-500">•</span>
-                    {source}
+                    {typeof source === 'string' ? source : JSON.stringify(source)}
                   </li>
                 ))}
               </ul>
@@ -778,7 +804,7 @@ function GeneratePanel({ loading, setLoading, result, setResult, error, setError
               Show raw output
             </summary>
             <pre className="mt-2 p-3 bg-gray-50 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap">
-              {result.raw_output}
+              {typeof result.raw_output === 'string' ? result.raw_output : JSON.stringify(result.raw_output, null, 2)}
             </pre>
           </details>
         </div>

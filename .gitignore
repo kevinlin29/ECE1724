@@ -1,6 +1,10 @@
 # Rust build artifacts (workspace level)
 target
 
+# Node.js
+node_modules/
+rrl/ui/node_modules/
+
 # RRL project data directories
 /rrl/chunks/
 /rrl/embeddings/

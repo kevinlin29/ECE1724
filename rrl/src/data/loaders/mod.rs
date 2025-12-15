@@ -83,39 +83,12 @@ impl DocumentLoader for MarkdownLoader {
     }
 }
 
-/// PDF file loader
+/// PDF file loader (not implemented)
 pub struct PdfLoader;
 
 impl DocumentLoader for PdfLoader {
     fn load(&self, _path: &Path) -> Result<Document> {
-        // For now, we'll use a simple approach with pdf-extract crate
-        // This will be added as a dependency
-        #[cfg(feature = "pdf")]
-        {
-            use pdf_extract::extract_text;
-            let content = extract_text(_path)
-                .context(format!("Failed to extract text from PDF: {:?}", _path))?;
-
-            let metadata = fs::metadata(_path)?;
-            let file_size = metadata.len() as usize;
-
-            let id = generate_document_id(_path);
-            let source = _path.to_string_lossy().to_string();
-
-            let doc_metadata = DocumentMetadata {
-                file_path: Some(_path.to_path_buf()),
-                file_type: "pdf".to_string(),
-                size: Some(file_size),
-                custom: HashMap::new(),
-            };
-
-            Ok(Document::new(id, source, content, doc_metadata))
-        }
-
-        #[cfg(not(feature = "pdf"))]
-        {
-            anyhow::bail!("PDF support not enabled. Compile with --features pdf")
-        }
+        anyhow::bail!("PDF support not implemented. Use .txt files instead.")
     }
 
     fn can_load(&self, path: &Path) -> bool {

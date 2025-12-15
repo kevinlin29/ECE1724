@@ -14,13 +14,9 @@ use std::path::Path;
 use std::sync::Arc;
 pub use infer::InferArgs;
 
-#[cfg(feature = "onnx-backend")]
-use crate::embedding::backends::create_onnx_embedder;
-
 #[cfg(feature = "training")]
 use crate::training::{
     select_device, DatasetConfig, DevicePreference, LoraConfig, TrainingConfig, TrainingDataset,
-    LoraModel,
 };
 
 
@@ -149,27 +145,10 @@ pub async fn embed(
     };
 
     let dimension = 384; // Default dimension
+    let _ = (model_path, hardware); // Unused parameters kept for CLI compatibility
 
     // Create embedder based on backend
-    let embedder = if backend.starts_with("onnx") || model_path.is_some() {
-        #[cfg(feature = "onnx-backend")]
-        {
-            let model_file = model_path.as_ref()
-                .ok_or_else(|| anyhow::anyhow!("ONNX backend requires --model-path"))?;
-            let model_file_path = Path::new(model_file);
-            if !model_file_path.exists() {
-                anyhow::bail!("Model file not found: {}", model_file);
-            }
-            tracing::info!("  Model path: {}", model_file);
-            create_onnx_embedder(model_file_path, config, &hardware)?
-        }
-        #[cfg(not(feature = "onnx-backend"))]
-        {
-            anyhow::bail!("ONNX backend not enabled. Compile with --features onnx-backend");
-        }
-    } else {
-        create_embedder(&backend, config, dimension)?
-    };
+    let embedder = create_embedder(&backend, config, dimension)?;
 
     tracing::info!("  Using embedder: {} (dim={})", embedder.model_name(), embedder.dimension());
 
@@ -806,7 +785,7 @@ pub async fn eval_mc(
     #[cfg(feature = "training")]
     {
         use crate::training::{
-            evaluate_multiple_choice, load_recipe_mpr_examples, LoraConfig, BertLoraModel,
+            evaluate_multiple_choice, load_recipe_mpr_examples, LoraConfig,
         };
         use candle_nn::VarMap;
 
@@ -834,9 +813,9 @@ pub async fn eval_mc(
         // Create LoRA config
         let lora_config = LoraConfig::new(lora_rank, lora_alpha);
 
-        // Load model
+        // Load model using universal loader (supports BERT, RoBERTa, Qwen2, LLaMA, Mistral)
         let var_map = VarMap::new();
-        let mut lora_model = BertLoraModel::from_pretrained(&model, &lora_config, &var_map, &candle_device)?;
+        let mut lora_model = crate::training::load_any_model_lora(&model, &lora_config, &var_map, &candle_device)?;
 
         // Load checkpoint if provided
         if let Some(ref ckpt_path) = checkpoint {
@@ -859,7 +838,7 @@ pub async fn eval_mc(
 
         // Run evaluation
         println!("\nRunning evaluation on {} examples...", examples.len());
-        let result = evaluate_multiple_choice(&lora_model, &tokenizer, &examples, &candle_device)?;
+        let result = evaluate_multiple_choice(&*lora_model, &tokenizer, &examples, &candle_device)?;
 
         // Display results
         println!("\n========================================");
@@ -867,6 +846,205 @@ pub async fn eval_mc(
         println!("========================================");
         println!("{}", result);
         println!("========================================\n");
+
+        Ok(())
+    }
+}
+
+/// Execute the eval-msmarco command - evaluate on MS MARCO v1.1
+#[allow(clippy::too_many_arguments)]
+pub async fn eval_msmarco(
+    data: String,
+    model: String,
+    checkpoint: Option<String>,
+    sample: Option<usize>,
+    lora_rank: usize,
+    lora_alpha: f32,
+    device: String,
+    max_seq_length: usize,
+    json_progress: bool,
+) -> Result<()> {
+    #[cfg(not(feature = "training"))]
+    {
+        let _ = (data, model, checkpoint, sample, lora_rank, lora_alpha, device, max_seq_length, json_progress);
+        anyhow::bail!(
+            "Training feature not enabled. Compile with: cargo build --features training"
+        );
+    }
+
+    #[cfg(feature = "training")]
+    {
+        use crate::evaluation::msmarco::{
+            load_msmarco_examples, MsMarcoEvaluator, MsMarcoMetrics,
+            cosine_similarity, rank_by_similarity,
+        };
+        use crate::training::LoraConfig;
+        use candle_nn::VarMap;
+        use std::time::Instant;
+
+        if !json_progress {
+            println!("\n========================================");
+            println!("MS MARCO v1.1 Evaluation");
+            println!("========================================");
+        }
+
+        tracing::info!("Starting MS MARCO evaluation");
+        tracing::info!("  Data: {}", data);
+        tracing::info!("  Model: {}", model);
+        tracing::info!("  Checkpoint: {:?}", checkpoint);
+        tracing::info!("  Sample: {:?}", sample);
+        tracing::info!("  LoRA rank: {}", lora_rank);
+        tracing::info!("  LoRA alpha: {}", lora_alpha);
+        tracing::info!("  Device: {}", device);
+        tracing::info!("  JSON progress: {}", json_progress);
+
+        // Select device
+        let device_pref: DevicePreference = device.parse()?;
+        let candle_device = select_device(device_pref)?;
+        tracing::info!("Using device: {:?}", candle_device);
+
+        // Load MS MARCO examples
+        let data_path = std::path::Path::new(&data);
+        tracing::info!("Loading MS MARCO data from: {}", data);
+        let examples = load_msmarco_examples(data_path, sample)?;
+        let total_queries = examples.len();
+        tracing::info!("Loaded {} examples", total_queries);
+
+        if !json_progress {
+            println!("  Queries to evaluate: {}", total_queries);
+            if let Some(s) = sample {
+                println!("  (sampled from full dataset, limit: {})", s);
+            }
+        }
+
+        // Create LoRA config
+        let lora_config = LoraConfig::new(lora_rank, lora_alpha);
+
+        // Load model using universal loader (supports BERT, RoBERTa, Qwen2, LLaMA, Mistral)
+        let var_map = VarMap::new();
+        let mut lora_model = crate::training::load_any_model_lora(&model, &lora_config, &var_map, &candle_device)?;
+
+        // Load checkpoint if provided
+        if let Some(ref ckpt_path) = checkpoint {
+            tracing::info!("Loading LoRA checkpoint from: {}", ckpt_path);
+            lora_model.load_lora_checkpoint(std::path::Path::new(ckpt_path))?;
+            if !json_progress {
+                println!("  Status: Fine-tuned model (checkpoint loaded)");
+            }
+        } else if !json_progress {
+            println!("  Status: Baseline model (no checkpoint)");
+        }
+
+        tracing::info!(
+            "Model loaded: {} trainable params",
+            lora_model.num_trainable_params()
+        );
+
+        // Load tokenizer
+        tracing::info!("Loading tokenizer...");
+        let tokenizer = TokenizerWrapper::from_pretrained(&model)?
+            .with_max_length(max_seq_length);
+
+        // Create evaluator
+        let evaluator = MsMarcoEvaluator::new(json_progress);
+
+        // Run evaluation
+        if !json_progress {
+            println!("\nRunning evaluation on {} queries...", total_queries);
+        }
+
+        let start_time = Instant::now();
+        let mut query_results = Vec::new();
+        let mut running_rr_sum = 0.0;
+
+        for (idx, example) in examples.iter().enumerate() {
+            // Tokenize query
+            let query_encoding = tokenizer.encode(&example.query, true)?;
+            let query_input_ids = candle_core::Tensor::new(
+                query_encoding.input_ids.as_slice(),
+                &candle_device,
+            )?.unsqueeze(0)?;
+            let query_attention_mask = candle_core::Tensor::new(
+                query_encoding.attention_mask.as_slice(),
+                &candle_device,
+            )?.unsqueeze(0)?;
+
+            // Get query embedding
+            let query_embedding = lora_model.forward(&query_input_ids, &query_attention_mask)?;
+            let query_vec: Vec<f32> = query_embedding.squeeze(0)?.to_vec1()?;
+
+            // Compute passage embeddings and similarities
+            let mut similarities = Vec::with_capacity(example.passages.len());
+
+            for passage in &example.passages {
+                let passage_encoding = tokenizer.encode(passage, true)?;
+                let passage_input_ids = candle_core::Tensor::new(
+                    passage_encoding.input_ids.as_slice(),
+                    &candle_device,
+                )?.unsqueeze(0)?;
+                let passage_attention_mask = candle_core::Tensor::new(
+                    passage_encoding.attention_mask.as_slice(),
+                    &candle_device,
+                )?.unsqueeze(0)?;
+
+                let passage_embedding = lora_model.forward(&passage_input_ids, &passage_attention_mask)?;
+                let passage_vec: Vec<f32> = passage_embedding.squeeze(0)?.to_vec1()?;
+
+                let sim = cosine_similarity(&query_vec, &passage_vec);
+                similarities.push(sim);
+            }
+
+            // Rank passages by similarity
+            let ranked_indices = rank_by_similarity(&similarities);
+            let relevant_indices = example.relevant_indices();
+
+            // Create query result
+            let query_result = MsMarcoEvaluator::create_query_result(
+                format!("q{}", idx),
+                ranked_indices,
+                relevant_indices,
+            );
+
+            // Update running MRR
+            running_rr_sum += query_result.reciprocal_rank();
+            let current_mrr = running_rr_sum / (idx + 1) as f64;
+
+            query_results.push(query_result);
+
+            // Report progress
+            let processed = idx + 1;
+            if json_progress {
+                evaluator.report_progress(processed, total_queries, current_mrr, start_time);
+            } else if processed % 100 == 0 || processed == total_queries {
+                let elapsed = start_time.elapsed().as_secs_f64();
+                let qps = processed as f64 / elapsed;
+                let eta = (total_queries - processed) as f64 / qps;
+                println!(
+                    "  Progress: {}/{} queries ({:.1}%), MRR@10: {:.4}, ETA: {:.0}s",
+                    processed,
+                    total_queries,
+                    processed as f64 / total_queries as f64 * 100.0,
+                    current_mrr,
+                    eta
+                );
+            }
+        }
+
+        // Compute final metrics
+        let elapsed_seconds = start_time.elapsed().as_secs_f64();
+        let retrieval_metrics = evaluator.evaluate(&query_results);
+        let metrics = MsMarcoMetrics::from_retrieval_metrics(&retrieval_metrics, elapsed_seconds);
+
+        // Output results
+        if json_progress {
+            metrics.print_json();
+        } else {
+            println!("\n========================================");
+            println!("Results");
+            println!("========================================");
+            println!("{}", metrics);
+            println!("========================================\n");
+        }
 
         Ok(())
     }
@@ -888,6 +1066,7 @@ pub async fn rag(
     template: String,
     format: String,
     device: String,
+    dtype: String,
 ) -> Result<()> {
     use crate::embedding::backends::{CandleBertConfig, CandleBertEmbedder};
     use crate::rag::{
@@ -902,6 +1081,7 @@ pub async fn rag(
     tracing::debug!("  Top-K: {}", top_k);
     tracing::debug!("  Retriever: {}", retriever_type);
     tracing::debug!("  Device: {}", device);
+    tracing::debug!("  Dtype: {}", dtype);
 
     // Parse device preference
     let device_pref: DevicePreference = device.parse()?;
@@ -958,7 +1138,8 @@ pub async fn rag(
     // Load generator (silent)
     let mut generator_config = GeneratorConfig::new(&generator_model)
         .with_device(device_pref)
-        .with_max_new_tokens(max_tokens);
+        .with_max_new_tokens(max_tokens)
+        .with_dtype(&dtype);
 
     if let Some(ref ckpt) = generator_checkpoint {
         generator_config = generator_config.with_lora_checkpoint(ckpt);

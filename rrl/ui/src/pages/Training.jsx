@@ -32,6 +32,7 @@ export default function Training() {
   const [wsConnected, setWsConnected] = useState(false);
   const logsEndRef = useRef(null);
   const wsRef = useRef(null);
+  const pollIntervalRef = useRef(null);
 
   useEffect(() => {
     loadModels();
@@ -41,6 +42,9 @@ export default function Training() {
     return () => {
       if (wsRef.current) {
         wsRef.current.close();
+      }
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
       }
     };
   }, []);
@@ -112,23 +116,34 @@ export default function Training() {
       setLogs(prev => [...prev, `Job started: ${result.job_id}`]);
 
       // WebSocket will handle live log updates automatically
-      // Fallback polling in case WebSocket fails
-      if (!wsConnected) {
-        const interval = setInterval(async () => {
-          try {
-            const logsData = await api.getTrainingLogs(result.job_id);
+      // Also start fallback polling to ensure we catch completion
+      pollIntervalRef.current = setInterval(async () => {
+        try {
+          const logsData = await api.getTrainingLogs(result.job_id);
+          // Only update logs if WebSocket isn't working (logs would be empty or stale)
+          if (logsData.logs && logsData.logs.length > 0) {
             setLogs(logsData.logs);
-
-            const status = await api.getTrainingStatus(result.job_id);
-            if (status.status !== 'running') {
-              clearInterval(interval);
-              setIsTraining(false);
-            }
-          } catch (error) {
-            console.error('Failed to fetch logs:', error);
           }
-        }, 1000);
-      }
+
+          const status = await api.getTrainingStatus(result.job_id);
+          if (status.status !== 'running' && status.status !== 'starting') {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+            setIsTraining(false);
+
+            // Show completion message
+            if (status.status === 'completed') {
+              setLogs(prev => [...prev, '\n✅ Training completed successfully!']);
+            } else if (status.status === 'failed') {
+              setLogs(prev => [...prev, `\n❌ Training failed: ${status.error || 'Unknown error'}`]);
+            } else if (status.status === 'stopped') {
+              setLogs(prev => [...prev, '\n⚠️ Training stopped by user']);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch logs:', error);
+        }
+      }, 2000);
 
     } catch (error) {
       console.error('Failed to start training:', error);

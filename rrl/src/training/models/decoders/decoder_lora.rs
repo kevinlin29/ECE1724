@@ -3,7 +3,7 @@
 //! Supports Qwen2, LLaMA, Mistral, and other decoder-only transformer architectures.
 
 use anyhow::{Context, Result};
-use candle_core::{DType, Device, Tensor};
+use candle_core::{DType, Device, Module, Tensor};
 use candle_nn::{Init, VarBuilder, VarMap};
 use candle_transformers::models::llama::{Cache as LlamaCache, Config as LlamaConfig, Llama};
 use candle_transformers::models::qwen2::{Config as Qwen2Config, ModelForCausalLM as Qwen2Model};
@@ -16,8 +16,8 @@ use crate::training::models::common::{EmbeddingModel, LoraModel, ModelArchitectu
 
 /// Enum for different decoder model architectures
 enum DecoderModel {
-    Qwen2(Qwen2Model),
-    Llama(Llama, LlamaCache),
+    Qwen2(Qwen2Model, candle_nn::Embedding), // Include embed_tokens for embedding extraction
+    Llama(Llama, LlamaConfig),
 }
 
 /// Configuration for decoder models
@@ -100,6 +100,14 @@ impl DecoderLoraModel {
                 lora_config.rank
             );
 
+            // Load the embedding layer separately for embedding extraction
+            // The weights are stored at "model.embed_tokens.weight"
+            let embed_tokens = candle_nn::embedding(
+                qwen_config.vocab_size,
+                qwen_config.hidden_size,
+                vb.pp("model.embed_tokens"),
+            ).context("Failed to load Qwen2 embed_tokens")?;
+
             let qwen_model = Qwen2Model::new(&qwen_config, vb)
                 .context("Failed to load Qwen2 model")?;
 
@@ -110,7 +118,7 @@ impl DecoderLoraModel {
                 architecture: ModelArchitecture::Qwen2,
             };
 
-            (DecoderModel::Qwen2(qwen_model), decoder_config)
+            (DecoderModel::Qwen2(qwen_model, embed_tokens), decoder_config)
         } else if arch.contains("llama") || model_type.contains("llama") {
             // Parse Llama config manually (LlamaConfig doesn't implement Deserialize)
             let llama_config = Self::parse_llama_config(&model_config)?;
@@ -125,7 +133,6 @@ impl DecoderLoraModel {
 
             let llama_model = Llama::load(vb, &llama_config)
                 .context("Failed to load Llama model")?;
-            let cache = LlamaCache::new(true, dtype, &llama_config, device)?;
 
             let decoder_config = DecoderConfig {
                 hidden_size: llama_config.hidden_size,
@@ -134,7 +141,7 @@ impl DecoderLoraModel {
                 architecture: ModelArchitecture::Llama,
             };
 
-            (DecoderModel::Llama(llama_model, cache), decoder_config)
+            (DecoderModel::Llama(llama_model, llama_config), decoder_config)
         } else if arch.contains("mistral") || model_type.contains("mistral") {
             // Mistral uses the same architecture as Llama
             let llama_config = Self::parse_llama_config(&model_config)?;
@@ -149,7 +156,6 @@ impl DecoderLoraModel {
 
             let mistral_model = Llama::load(vb, &llama_config)
                 .context("Failed to load Mistral model")?;
-            let cache = LlamaCache::new(true, dtype, &llama_config, device)?;
 
             let decoder_config = DecoderConfig {
                 hidden_size: llama_config.hidden_size,
@@ -158,7 +164,7 @@ impl DecoderLoraModel {
                 architecture: ModelArchitecture::Mistral,
             };
 
-            (DecoderModel::Llama(mistral_model, cache), decoder_config)
+            (DecoderModel::Llama(mistral_model, llama_config), decoder_config)
         } else {
             anyhow::bail!("Unsupported decoder architecture: {} / {}", arch, model_type);
         };
@@ -293,40 +299,63 @@ impl DecoderLoraModel {
         let mut model_guard = self.model.lock().map_err(|e| anyhow::anyhow!("Model lock error: {}", e))?;
 
         match &mut *model_guard {
-            DecoderModel::Qwen2(model) => {
+            DecoderModel::Qwen2(model, _embed_tokens) => {
                 let logits = model.forward(input_ids, 0)?;
                 // For decoder training, we typically want logits directly
                 Ok(logits)
             }
-            DecoderModel::Llama(model, cache) => {
-                let logits = model.forward(input_ids, 0, cache)?;
+            DecoderModel::Llama(model, llama_config) => {
+                // Create a fresh cache for each forward pass during training
+                // This ensures we get full sequence logits [batch, seq_len, vocab]
+                // instead of single-token logits [batch, vocab] from cached inference
+                let mut cache = LlamaCache::new(false, DType::F32, llama_config, &self.device)?;
+                let logits = model.forward(input_ids, 0, &mut cache)?;
                 Ok(logits)
             }
         }
     }
 
     /// Get mean-pooled hidden states (useful for embedding tasks)
+    ///
+    /// For decoder models, we get input embeddings and apply mean pooling.
+    /// This is similar to how sentence-transformers handles decoder models.
     fn get_pooled_hidden(&self, input_ids: &Tensor, attention_mask: &Tensor) -> Result<Tensor> {
-        // For decoder models, we use the last token's hidden state or mean pooling
-        let logits = self.forward_logits(input_ids)?;
+        // Get input embeddings [batch, seq_len, hidden_size]
+        let embeddings = self.get_input_embeddings(input_ids)?;
 
-        // Get the shape
-        let (_batch, _seq_len, _vocab) = logits.dims3()?;
+        let hidden_size = embeddings.dim(2)?;
 
-        // For simplicity, take mean over sequence dimension
-        // This is a simplified pooling - in practice you might want last token
+        // Mean pooling over sequence dimension with attention mask
         let mask_expanded = attention_mask
             .unsqueeze(2)?
-            .broadcast_as(logits.shape())?
-            .to_dtype(logits.dtype())?;
+            .broadcast_as(embeddings.shape())?
+            .to_dtype(embeddings.dtype())?;
 
-        let masked = (logits * &mask_expanded)?;
+        let masked = (&embeddings * &mask_expanded)?;
         let sum = masked.sum(1)?;
         let count = attention_mask.sum(1)?.unsqueeze(1)?;
+        let count = count.to_dtype(embeddings.dtype())?;  // Convert to same dtype as embeddings
+        let count = count.broadcast_as(&[count.dim(0)?, hidden_size])?;
         let pooled = sum.broadcast_div(&count)?;
 
         // Apply LoRA to pooled representation
         self.apply_lora(&pooled)
+    }
+
+    /// Get input embeddings from the model (before transformer layers)
+    fn get_input_embeddings(&self, input_ids: &Tensor) -> Result<Tensor> {
+        let model_guard = self.model.lock().map_err(|e| anyhow::anyhow!("Model lock error: {}", e))?;
+
+        match &*model_guard {
+            DecoderModel::Qwen2(_model, embed_tokens) => {
+                // Use the separately loaded embed_tokens layer for embedding extraction
+                embed_tokens.forward(input_ids).map_err(|e| anyhow::anyhow!("Qwen2 embedding error: {}", e))
+            }
+            DecoderModel::Llama(model, _) => {
+                // Use Llama's embed method to get input embeddings [batch, seq, hidden]
+                model.embed(input_ids).map_err(|e| anyhow::anyhow!("Embedding error: {}", e))
+            }
+        }
     }
 }
 

@@ -1,7 +1,7 @@
 //! Embedding generation and caching
 //!
-//! Provides trait-based embedding interface with support for multiple backends
-//! (tch, onnxruntime) and persistent caching with SQLite.
+//! Provides trait-based embedding interface with Candle backend
+//! and persistent caching with SQLite.
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};

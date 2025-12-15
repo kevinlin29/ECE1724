@@ -38,8 +38,53 @@ impl HubApi {
 
         tracing::debug!("Downloaded config.json: {:?}", config_path);
 
+        // Get the model directory from the config path
+        let model_dir = config_path
+            .parent()
+            .ok_or_else(|| anyhow!("Invalid config path"))?
+            .to_path_buf();
+
         // Try to download model weights (safetensors preferred)
-        let weights_path = if let Ok(path) = repo.get("model.safetensors") {
+        // Check for sharded models first by looking at model.safetensors.index.json
+        let weights_path = if let Ok(index_path) = repo.get("model.safetensors.index.json") {
+            // This is a sharded model - download the index and all shards
+            tracing::info!("Detected sharded safetensors model, downloading shards...");
+
+            // Parse the index to find all shard files
+            let index_content = std::fs::read_to_string(&index_path)
+                .context("Failed to read safetensors index")?;
+            let index: serde_json::Value = serde_json::from_str(&index_content)
+                .context("Failed to parse safetensors index")?;
+
+            // Get unique shard filenames from weight_map
+            let mut shard_files: std::collections::HashSet<String> = std::collections::HashSet::new();
+            if let Some(weight_map) = index.get("weight_map").and_then(|v| v.as_object()) {
+                for filename in weight_map.values() {
+                    if let Some(f) = filename.as_str() {
+                        shard_files.insert(f.to_string());
+                    }
+                }
+            }
+
+            // Download all shards
+            let mut first_shard: Option<PathBuf> = None;
+            let total_shards = shard_files.len();
+            for (i, shard_file) in shard_files.iter().enumerate() {
+                tracing::info!("Downloading shard {}/{}: {}", i + 1, total_shards, shard_file);
+                match repo.get(shard_file) {
+                    Ok(path) => {
+                        if first_shard.is_none() {
+                            first_shard = Some(path);
+                        }
+                    }
+                    Err(e) => {
+                        tracing::warn!("Failed to download shard {}: {}", shard_file, e);
+                    }
+                }
+            }
+
+            first_shard.ok_or_else(|| anyhow!("Failed to download any model shards"))?
+        } else if let Ok(path) = repo.get("model.safetensors") {
             tracing::debug!("Downloaded model.safetensors: {:?}", path);
             path
         } else if let Ok(path) = repo.get("pytorch_model.bin") {
@@ -47,7 +92,7 @@ impl HubApi {
             path
         } else {
             return Err(anyhow!(
-                "No model weights found (tried model.safetensors and pytorch_model.bin)"
+                "No model weights found (tried model.safetensors, sharded safetensors, and pytorch_model.bin)"
             ));
         };
 
@@ -58,12 +103,6 @@ impl HubApi {
         if tokenizer_path.is_some() {
             tracing::debug!("Downloaded tokenizer.json");
         }
-
-        // Get the model directory from the config path
-        let model_dir = config_path
-            .parent()
-            .ok_or_else(|| anyhow!("Invalid config path"))?
-            .to_path_buf();
 
         Ok(ModelPath {
             path: model_dir,

@@ -355,6 +355,7 @@ pub struct CudaBertEncoder {
     checkpoint_config: CheckpointConfig,
 }
 
+#[allow(dead_code)]
 impl CudaBertEncoder {
     pub fn load(vb: VarBuilder, config: &CudaBertConfig) -> Result<Self> {
         let mut layers = Vec::with_capacity(config.num_hidden_layers);

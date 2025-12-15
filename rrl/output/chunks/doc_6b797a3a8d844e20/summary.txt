@@ -1,4 +1,0 @@
-Document: doc_6b797a3a8d844e20
-Source: .\test-docs\rust.txt
-Chunks: 1
-Content length: 120 chars

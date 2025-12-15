@@ -1,0 +1,331 @@
+Recipe 1: Spaghetti Carbonara
+Ingredients:
+- Spaghetti
+- Guanciale
+- Eggs
+- Pecorino Romano
+- Black Pepper
+Steps:
+1. Cook spaghetti.
+2. Fry guanciale.
+3. Whisk eggs with pecorino.
+4. Combine pasta with guanciale and egg mixture off-heat.
+5. Season with pepper.
+
+Recipe 2: Lasagna alla Bolognese
+Ingredients:
+- Lasagna sheets
+- Bolognese sauce
+- Béchamel
+- Parmesan
+Steps:
+1. Layer pasta, meat sauce, béchamel, cheese.
+2. Repeat layers.
+3. Bake until golden.
+
+Recipe 3: Risotto alla Milanese
+Ingredients:
+- Arborio rice
+- Saffron
+- Stock
+- Butter
+- Parmesan
+Steps:
+1. Toast rice.
+2. Add saffron-infused stock gradually.
+3. Stir until creamy.
+4. Add butter and parmesan.
+
+Recipe 4: Pasta al Pomodoro
+Ingredients:
+- Spaghetti
+- Tomatoes
+- Garlic
+- Basil
+- Olive oil
+Steps:
+1. Cook sauce with tomatoes and garlic.
+2. Toss with pasta.
+3. Finish with basil.
+
+Recipe 5: Pesto Genovese
+Ingredients:
+- Basil
+- Pine nuts
+- Garlic
+- Parmesan
+- Olive oil
+Steps:
+1. Blend basil, nuts, garlic.
+2. Add cheese and oil.
+3. Mix with pasta.
+
+Recipe 6: Osso Buco
+Ingredients:
+- Veal shanks
+- Onion
+- Carrot
+- Celery
+- Tomato
+- White wine
+Steps:
+1. Brown veal.
+2. Add vegetables and braise with wine and broth.
+3. Simmer until tender.
+
+Recipe 7: Polenta Cremosa
+Ingredients:
+- Cornmeal
+- Water
+- Salt
+- Butter
+- Parmesan
+Steps:
+1. Cook cornmeal slowly.
+2. Stir constantly.
+3. Add butter and cheese.
+
+Recipe 8: Gnocchi di Patate
+Ingredients:
+- Potatoes
+- Flour
+- Egg
+- Salt
+Steps:
+1. Mash potatoes.
+2. Mix with flour and egg.
+3. Shape into gnocchi.
+4. Boil until floating.
+
+Recipe 9: Fettuccine Alfredo
+Ingredients:
+- Fettuccine
+- Butter
+- Parmesan
+Steps:
+1. Cook pasta.
+2. Melt butter.
+3. Toss pasta with butter and cheese until creamy.
+
+Recipe 10: Tiramisu
+Ingredients:
+- Ladyfingers
+- Mascarpone
+- Eggs
+- Sugar
+- Coffee
+- Cocoa
+Steps:
+1. Dip biscuits in coffee.
+2. Layer with mascarpone mixture.
+3. Dust with cocoa.
+
+Recipe 11: Bruschetta al Pomodoro
+Ingredients:
+- Bread
+- Tomatoes
+- Garlic
+- Basil
+- Olive oil
+Steps:
+1. Toast bread.
+2. Top with tomato mixture.
+3. Drizzle with olive oil.
+
+Recipe 12: Ribollita
+Ingredients:
+- Bread
+- Cannellini beans
+- Tomatoes
+- Cabbage
+- Carrots
+Steps:
+1. Cook vegetables and beans.
+2. Stir in bread to thicken.
+3. Simmer and serve.
+
+Recipe 13: Tagliatelle al Ragù
+Ingredients:
+- Tagliatelle
+- Ground beef
+- Tomato
+- Wine
+- Vegetables
+Steps:
+1. Prepare ragù slowly.
+2. Serve over tagliatelle.
+
+Recipe 14: Saltimbocca alla Romana
+Ingredients:
+- Veal
+- Prosciutto
+- Sage
+- White wine
+Steps:
+1. Wrap veal with prosciutto and sage.
+2. Pan-sear.
+3. Deglaze with wine.
+
+Recipe 15: Pasta e Fagioli
+Ingredients:
+- Pasta
+- Beans
+- Tomato
+- Garlic
+- Vegetables
+Steps:
+1. Cook beans.
+2. Add pasta and vegetables.
+3. Simmer until thick.
+
+Recipe 16: Arancini Siciliani
+Ingredients:
+- Rice
+- Mozzarella
+- Breadcrumbs
+- Ragù
+Steps:
+1. Stuff rice with mozzarella or ragù.
+2. Bread and fry.
+
+Recipe 17: Melanzane alla Parmigiana
+Ingredients:
+- Eggplant
+- Tomato sauce
+- Mozzarella
+- Parmesan
+Steps:
+1. Layer fried eggplant with sauce and cheese.
+2. Bake.
+
+Recipe 18: Calzone
+Ingredients:
+- Pizza dough
+- Cheese
+- Ham
+- Tomato sauce
+Steps:
+1. Stuff dough with fillings.
+2. Fold and bake.
+
+Recipe 19: Cacio e Pepe
+Ingredients:
+- Pasta
+- Pecorino Romano
+- Black pepper
+Steps:
+1. Toast pepper.
+2. Mix cheese with hot pasta water.
+3. Combine with pasta.
+
+Recipe 20: Panzanella
+Ingredients:
+- Stale bread
+- Tomatoes
+- Onion
+- Basil
+- Vinegar
+Steps:
+1. Soak bread lightly.
+2. Mix with vegetables and dressing.
+
+Recipe 21: Minestrone
+Ingredients:
+- Vegetables
+- Beans
+- Tomato
+- Pasta
+Steps:
+1. Simmer vegetables and beans.
+2. Add pasta at the end.
+
+Recipe 22: Cotoletta alla Milanese
+Ingredients:
+- Veal cutlet
+- Breadcrumbs
+- Eggs
+Steps:
+1. Bread veal.
+2. Shallow fry until crisp.
+
+Recipe 23: Pappardelle al Cinghiale
+Ingredients:
+- Pappardelle
+- Wild boar ragù
+Steps:
+1. Slow-cook boar.
+2. Serve ragù over pasta.
+
+Recipe 24: Zuppa Toscana
+Ingredients:
+- Italian sausage
+- Kale
+- Potatoes
+- Cream
+Steps:
+1. Cook sausage.
+2. Add potatoes.
+3. Add kale and cream.
+
+Recipe 25: Focaccia Genovese
+Ingredients:
+- Flour
+- Yeast
+- Olive oil
+- Salt
+Steps:
+1. Make dough.
+2. Dimple and oil.
+3. Bake until golden.
+
+Recipe 26: Cannoli Siciliani
+Ingredients:
+- Ricotta
+- Sugar
+- Chocolate chips
+- Shells
+Steps:
+1. Fill shells with sweetened ricotta cream.
+
+Recipe 27: Piadina Romagnola
+Ingredients:
+- Flour
+- Lard
+- Salt
+- Water
+Steps:
+1. Roll flatbread.
+2. Cook on griddle.
+3. Fill with cheese/meat.
+
+Recipe 28: Bucatini all’Amatriciana
+Ingredients:
+- Bucatini
+- Guanciale
+- Tomato sauce
+- Pecorino
+Steps:
+1. Cook guanciale.
+2. Add tomato.
+3. Mix with pasta and cheese.
+
+Recipe 29: Penne all’Arrabbiata
+Ingredients:
+- Penne
+- Tomato
+- Chili
+- Garlic
+Steps:
+1. Cook spicy tomato sauce.
+2. Combine with pasta.
+
+Recipe 30: Branzino al Forno
+Ingredients:
+- Sea bass
+- Lemon
+- Herbs
+- Olive oil
+Steps:
+1. Season fish.
+2. Bake until flaky.
+

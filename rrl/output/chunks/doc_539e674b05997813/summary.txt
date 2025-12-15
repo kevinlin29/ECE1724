@@ -1,4 +1,0 @@
-Document: doc_539e674b05997813
-Source: .\test-docs\rag.txt
-Chunks: 2
-Content length: 183 chars

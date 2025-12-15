@@ -23,10 +23,7 @@ axum = "0.7"
 tower = "0.5"
 tower-http = { version = "0.6", features = ["trace", "cors"] }
 
-# ML & Embedding backends
-tch = { version = "0.17", optional = true }
-onnxruntime = { version = "0.0.14", optional = true }
-ndarray = { version = "0.15", optional = true }
+# ML & Embedding backends (Candle)
 candle-core = { version = "0.9", optional = true }
 candle-nn = { version = "0.9", optional = true }
 candle-transformers = { version = "0.9", optional = true }
@@ -48,8 +45,6 @@ tantivy = "0.22"
 tiktoken-rs = "0.5"
 unicode-segmentation = "1.12"
 
-# Document parsing
-pdf-extract = { version = "0.7", optional = true }
 
 # Database & caching
 rusqlite = { version = "0.32", features = ["bundled"] }
@@ -83,9 +78,6 @@ tempfile = "3.12"
 
 [features]
 default = []
-pdf = ["pdf-extract"]
-tch-backend = ["tch", "candle-core", "candle-nn"]
-onnx-backend = ["onnxruntime", "ndarray"]
 
 # Training feature - enables fine-tuning capabilities
 training = [

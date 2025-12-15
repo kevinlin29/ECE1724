@@ -47,15 +47,15 @@ enum Commands {
         #[arg(short, long, default_value = "sentence-transformers/all-MiniLM-L6-v2")]
         model: String,
 
-        /// Backend: token, mock, or onnx
+        /// Backend: token or mock
         #[arg(short, long, default_value = "token")]
         backend: String,
 
-        /// Model file path (for ONNX backend)
+        /// Model file path (unused, kept for compatibility)
         #[arg(long)]
         model_path: Option<String>,
 
-        /// Hardware backend: cpu, cuda, or metal
+        /// Hardware backend (unused, kept for compatibility)
         #[arg(long, default_value = "cpu")]
         hardware: String,
     },
@@ -262,6 +262,45 @@ enum Commands {
         max_seq_length: usize,
     },
 
+    /// Evaluate on MS MARCO v1.1 passage re-ranking task
+    EvalMsmarco {
+        /// MS MARCO validation data path (JSONL format)
+        #[arg(short, long)]
+        data: String,
+
+        /// Base model path or HuggingFace model ID
+        #[arg(short, long, default_value = "bert-base-uncased")]
+        model: String,
+
+        /// LoRA checkpoint path (optional, for fine-tuned model)
+        #[arg(long)]
+        checkpoint: Option<String>,
+
+        /// Sample size (optional, use subset for faster evaluation)
+        #[arg(long)]
+        sample: Option<usize>,
+
+        /// LoRA rank (must match checkpoint)
+        #[arg(long, default_value = "8")]
+        lora_rank: usize,
+
+        /// LoRA alpha (must match checkpoint)
+        #[arg(long, default_value = "16")]
+        lora_alpha: f32,
+
+        /// Device: auto, cpu, cuda, or metal
+        #[arg(long, default_value = "auto")]
+        device: String,
+
+        /// Maximum sequence length
+        #[arg(long, default_value = "512")]
+        max_seq_length: usize,
+
+        /// Output JSON progress updates (for UI integration)
+        #[arg(long)]
+        json_progress: bool,
+    },
+
     /// Launch interactive TUI (Terminal User Interface)
     Tui,
 
@@ -322,6 +361,10 @@ enum Commands {
         /// Device: auto, cpu, cuda, or metal
         #[arg(long, default_value = "auto")]
         device: String,
+
+        /// Model dtype: f32, f16, or bf16 (f16 recommended for large models)
+        #[arg(long, default_value = "f16")]
+        dtype: String,
     },
 
     /// Run inference on a model (embedding or generation)
@@ -466,6 +509,31 @@ async fn main() -> anyhow::Result<()> {
             .await?;
         }
 
+        Commands::EvalMsmarco {
+            data,
+            model,
+            checkpoint,
+            sample,
+            lora_rank,
+            lora_alpha,
+            device,
+            max_seq_length,
+            json_progress,
+        } => {
+            cli::eval_msmarco(
+                data,
+                model,
+                checkpoint,
+                sample,
+                lora_rank,
+                lora_alpha,
+                device,
+                max_seq_length,
+                json_progress,
+            )
+            .await?;
+        }
+
         Commands::Tui => {
             rrl::tui::run_tui()?;
         }
@@ -485,6 +553,7 @@ async fn main() -> anyhow::Result<()> {
             template,
             format,
             device,
+            dtype,
         } => {
             cli::rag(
                 index,
@@ -500,6 +569,7 @@ async fn main() -> anyhow::Result<()> {
                 template,
                 format,
                 device,
+                dtype,
             )
             .await?;
         }

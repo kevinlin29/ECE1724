@@ -2,7 +2,6 @@
 //!
 //! Supports multiple backends:
 //! - Candle BERT: Native Rust BERT with LoRA support for fine-tuned models
-//! - ONNX: ONNX Runtime for production deployment
 //! - Mock/Token: Testing and fallback embedders
 
 use crate::embedding::{Embedder, Embedding, EmbeddingConfig, normalize_embedding};
@@ -16,12 +15,6 @@ pub mod candle_bert;
 
 #[cfg(feature = "training")]
 pub use candle_bert::{CandleBertConfig, CandleBertEmbedder, auto_detect_embedder};
-
-#[cfg(feature = "onnx-backend")]
-pub mod onnx;
-
-#[cfg(feature = "onnx-backend")]
-pub use onnx::{HardwareBackend, OnnxEmbedder};
 
 /// Mock embedder for testing (generates random but deterministic embeddings)
 pub struct MockEmbedder {
@@ -158,32 +151,11 @@ pub fn create_embedder(
     match backend {
         "mock" => Ok(Arc::new(MockEmbedder::new(config, dimension))),
         "token" => Ok(Arc::new(TokenEmbedder::new(config, dimension))),
-        #[cfg(feature = "onnx-backend")]
-        "onnx" | "onnx-cpu" | "onnx-cuda" | "onnx-metal" => {
-            anyhow::bail!("ONNX backend requires model path. Use create_onnx_embedder() instead.");
-        }
-        #[cfg(feature = "tch-backend")]
-        "tch" => {
-            // TODO: Implement tch backend
-            anyhow::bail!("Tch backend not yet implemented");
-        }
         _ => {
             tracing::warn!("Unknown backend '{}', using token-based embedder", backend);
             Ok(Arc::new(TokenEmbedder::new(config, dimension)))
         }
     }
-}
-
-/// Create an ONNX embedder with a specific model path
-#[cfg(feature = "onnx-backend")]
-pub fn create_onnx_embedder(
-    model_path: &Path,
-    config: EmbeddingConfig,
-    hardware: &str,
-) -> Result<Box<dyn Embedder>> {
-    let hardware_backend = HardwareBackend::from_str(hardware);
-    let embedder = OnnxEmbedder::new(model_path, config, hardware_backend)?;
-    Ok(Box::new(embedder))
 }
 
 #[cfg(test)]

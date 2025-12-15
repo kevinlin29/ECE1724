@@ -78,6 +78,32 @@ impl Default for PromptTemplates {
             ).to_string(),
         );
 
+        // Simple template for small models (0.5B-1.5B)
+        templates.insert(
+            "simple".to_string(),
+            concat!(
+                "Answer based on this info:\n\n",
+                "{context}\n\n",
+                "Q: {query}\n",
+                "A:"
+            ).to_string(),
+        );
+
+        // Qwen chat template (for Qwen models)
+        templates.insert(
+            "qwen".to_string(),
+            concat!(
+                "<|im_start|>system\n",
+                "You are a helpful assistant. Answer questions based on the provided context.\n",
+                "<|im_end|>\n",
+                "<|im_start|>user\n",
+                "Context:\n{context}\n\n",
+                "Question: {query}\n",
+                "<|im_end|>\n",
+                "<|im_start|>assistant\n"
+            ).to_string(),
+        );
+
         Self { templates }
     }
 }

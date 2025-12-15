@@ -51,6 +51,22 @@ const api = {
     return response.data;
   },
 
+  // MS MARCO Evaluation
+  startMsmarcoEval: async (config) => {
+    const response = await axios.post(`${API_URL}/eval/msmarco`, config);
+    return response.data;
+  },
+
+  getMsmarcoEvalStatus: async (jobId) => {
+    const response = await axios.get(`${API_URL}/eval/msmarco/${jobId}`);
+    return response.data;
+  },
+
+  cancelMsmarcoEval: async (jobId) => {
+    const response = await axios.delete(`${API_URL}/eval/msmarco/${jobId}`);
+    return response.data;
+  },
+
   // Inference
   runInference: async (request) => {
     const response = await axios.post(`${API_URL}/inference`, request);
@@ -195,6 +211,65 @@ const api = {
     return {
       close: () => ws.close(),
       send: (msg) => ws.send(JSON.stringify(msg)),
+    };
+  },
+
+  // WebSocket for MS MARCO evaluation progress
+  connectMsmarcoWebSocket: (jobId, onProgress, onComplete, onError) => {
+    const WS_URL = API_URL.replace('http', 'ws');
+    const ws = new WebSocket(`${WS_URL}/ws`);
+
+    ws.onopen = () => {
+      console.log('WebSocket connected for MS MARCO evaluation');
+      // Subscribe to job updates
+      ws.send(JSON.stringify({
+        type: 'subscribe_msmarco',
+        job_id: jobId,
+      }));
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'msmarco_progress') {
+          if (onProgress) onProgress(data.progress);
+        } else if (data.type === 'msmarco_complete') {
+          if (onComplete) onComplete(data.result);
+        } else if (data.type === 'msmarco_error') {
+          if (onError) onError(data.error);
+        } else if (data.type === 'msmarco_status') {
+          // Initial status update
+          if (data.status === 'completed' && onComplete) {
+            onComplete(data.result);
+          } else if (data.progress && onProgress) {
+            onProgress(data.progress);
+          }
+        } else if (data.type === 'msmarco_cancelled') {
+          if (onError) onError('Evaluation cancelled');
+        }
+      } catch (e) {
+        console.error('Failed to parse WebSocket message:', e);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      if (onError) onError(error);
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+    };
+
+    // Return control object
+    return {
+      close: () => ws.close(),
+      unsubscribe: () => {
+        ws.send(JSON.stringify({
+          type: 'unsubscribe_msmarco',
+          job_id: jobId,
+        }));
+      },
     };
   },
 };

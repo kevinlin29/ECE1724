@@ -31,16 +31,17 @@ Design and implement an **end-to-end Rust-native framework** that integrates ret
 ## ✨ Key Features
 
 ### 1. Data & Chunking
-- ✅ **Flexible Loaders** — Support PDF, Markdown, and plain text documents
-- ✅ **Chunking Strategies** — Fixed-size, overlapping, and semantic-based methods
+- ✅ **Document Loader** — Plain text (`.txt`) files supported
+- ✅ **Chunking Strategies** — Fixed-size and overlapping chunking methods
 - ✅ **Preprocessing Pipeline** — Tokenization, stopword filtering, sentence segmentation
-- ✅ **CLI Command:** `rrl ingest --input ./docs --output ./data/chunks.json`
+- ✅ **CLI Command:** `rrl ingest --input ./docs --output ./output/chunks`
 
-### 2. Embeddings
+### 2. Embeddings & Model Support
 - ✅ **Trait-based Embedder Interface** for modular backend integration
-- ✅ **Backends** — `tch` (Torch bindings) and `onnxruntime`
+- ✅ **Backend** — **Candle** (Rust-native ML framework)
 - ✅ **Hardware Acceleration** — Support for **CUDA (NVIDIA)** and **Metal (Apple)** GPUs
-- ✅ **Model Support** — BERT, RoBERTa, BGE, E5, DistilBERT, ALBERT, DeBERTa
+- ✅ **Encoder Models** — BERT, RoBERTa, BGE, E5, DistilBERT, ALBERT, DeBERTa
+- ✅ **Decoder Models (LLM)** — **Qwen2**, **LLaMA**, **Mistral** for text generation
 - ✅ **Persistent Cache** — SQLite storage with versioning
 - ✅ **CLI Command:** `rrl embed --input ./data/chunks.json --output ./data/embeddings.safetensors`
 
@@ -53,6 +54,9 @@ Design and implement an **end-to-end Rust-native framework** that integrates ret
 
 ### 4. Fine-Tuning (RAG-Aware)
 - ✅ **LoRA / QLoRA / DoRA Fine-Tuning** using **Candle** (CUDA + Metal backends)
+- ✅ **Multi-Architecture Support:**
+  - **Encoder Models:** BERT, RoBERTa, BGE, E5, DistilBERT, ALBERT, DeBERTa
+  - **Decoder Models:** **Qwen2**, **LLaMA**, **Mistral** (for generation fine-tuning)
 - ✅ **Multi-Adapter Support** — Train and switch between task-specific adapters
 - ✅ **Training Optimizations:**
   - Flash Attention (3.5x speedup)
@@ -75,10 +79,14 @@ Design and implement an **end-to-end Rust-native framework** that integrates ret
 ```bash
 rrl ingest    # Load and chunk documents
 rrl embed     # Compute embeddings and build indexes
-rrl train     # Fine-tune LoRA adapters
-rrl eval      # Evaluate retrieval/generation pipelines
-rrl query     # Query RAG system
-rrl serve     # Launch API server (coming soon)
+rrl index     # Build retrieval indexes (HNSW, BM25)
+rrl query     # Query retrieval indexes
+rrl train     # Fine-tune LoRA adapters (encoder/decoder models)
+rrl eval      # Evaluate retrieval performance
+rrl eval-mc   # Evaluate multiple-choice accuracy
+rrl rag       # Run full RAG pipeline with LLM generation (Qwen2/LLaMA/Mistral)
+rrl infer     # Run inference on a model
+rrl serve     # Launch API server
 ```
 
 **Rust API / SDK:**
@@ -86,20 +94,22 @@ rrl serve     # Launch API server (coming soon)
 - ✅ Integration with other Rust-based ML systems
 - ✅ Type-safe configuration and error handling
 
-### 7. 🆕 Web Interface (NEW!)
+### 7. Web Interface (Primary UI)
 
-**Complete React-based UI with live monitoring:**
+**Complete React-based UI with live monitoring** — the primary way to interact with RRL:
 - ✅ **Live Training Dashboard** — Real-time metrics, charts, logs via WebSocket
-- ✅ **Model Browser** — Explore and configure 10+ model architectures
+- ✅ **Model Browser** — Explore and configure model architectures
 - ✅ **Training Launcher** — Interactive job configuration and management
 - ✅ **Evaluation Dashboard** — Test model performance with detailed metrics
 - ✅ **Inference Playground** — Interactive model testing environment
 - ✅ **RAG Workflow** — 4-step pipeline (Ingest → Embed → Index → Query)
 - ✅ **Data Upload** — Drag-and-drop dataset management
 
+> **Note:** The Web UI is the recommended interface. Terminal UI (ratatui) development has been transitioned to focus on the Web UI.
+
 **Access:** `http://localhost:5173` (after running `npm run dev`)
 
-### 8. Server & API (NEW!)
+### 8. Server & API
 
 **FastAPI Backend:**
 - ✅ **REST API** — Complete API for all RRL operations
@@ -184,19 +194,35 @@ node --version
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/yourusername/rrl.git
-cd rrl
+git clone https://github.com/kevinlin29/ECE1724.git
+cd ECE1724/rrl
 
-# 2. Build Rust backend
-cargo build --release
+# 2. Build Rust backend (choose one based on your hardware)
 
-# 3. Install Python dependencies
+# CPU-only build (training features enabled)
+cargo build --release --features training
+
+# CUDA GPU build (NVIDIA GPUs - recommended for training)
+cargo build --release --features cuda
+
+# Metal GPU build (Apple Silicon)
+cargo build --release --features metal
+
+# 3. Install Python dependencies (for Web UI backend)
 pip install fastapi uvicorn websockets python-multipart
 
 # 4. Install UI dependencies
 cd ui
 npm install
 ```
+
+### Build Feature Flags
+
+| Feature | Description | Use Case |
+|---------|-------------|----------|
+| `training` | Enables fine-tuning capabilities | CPU-only training |
+| `cuda` | CUDA GPU acceleration + training | NVIDIA GPU training |
+| `metal` | Metal GPU acceleration + training | Apple Silicon |
 
 ### Run the Platform
 
@@ -209,6 +235,7 @@ python server.py
 **Terminal 2 - Frontend UI:**
 ```bash
 cd ui
+npm install
 npm run dev
 # Runs on http://localhost:5173
 ```
@@ -255,28 +282,79 @@ npm run dev
 ### 2. RAG Workflow (CLI)
 
 ```bash
-# Step 1: Ingest
-rrl ingest --input ./test-docs --output ./data/chunks.json
+# Step 1: Ingest documents
+rrl ingest --input ./test-docs --output ./output/chunks
 
-# Step 2: Embed
+# Step 2: Generate embeddings
 rrl embed \
-  --input ./data/chunks.json \
-  --output ./data/embeddings.safetensors \
+  --input ./output/chunks \
+  --output ./output/embeddings \
   --model BAAI/bge-base-en-v1.5
 
-# Step 3: Index
-rrl index build \
-  --embeddings ./data/embeddings.safetensors \
-  --output ./index
+# Step 3: Build indexes
+rrl index \
+  --chunks ./output/chunks \
+  --embeddings ./output/embeddings \
+  --output ./output/indexes \
+  --model BAAI/bge-base-en-v1.5 \
+  --index-type both  # builds both HNSW and BM25
 
-# Step 4: Query
+# Step 4: Query (retrieval only)
 rrl query \
-  --index ./index \
+  --index ./output/indexes \
   --query "What is RAG?" \
-  --top-k 5
+  --top-k 5 \
+  --retriever hybrid
 ```
 
-### 3. Train a Model (Web UI)
+### 3. RAG with LLM Generation (CLI)
+
+Use the `rrl rag` command for full retrieval-augmented generation with **Qwen2** or **LLaMA**:
+
+```bash
+# Single query with Qwen2 (default)
+rrl rag \
+  --index ./output/indexes \
+  --query "What is machine learning?" \
+  --generator Qwen/Qwen2.5-0.5B \
+  --embedder bert-base-uncased \
+  --top-k 5 \
+  --device auto
+
+# Interactive mode with LLaMA
+rrl rag \
+  --index ./output/indexes \
+  --generator meta-llama/Llama-2-7b-hf \
+  --embedder BAAI/bge-base-en-v1.5 \
+  --retriever hybrid \
+  --temperature 0.7 \
+  --max-tokens 512
+
+# With fine-tuned checkpoints
+rrl rag \
+  --index ./output/indexes \
+  --query "How do I make pasta?" \
+  --generator Qwen/Qwen2.5-0.5B \
+  --generator-checkpoint ./outputs/final/lora_weights.safetensors \
+  --embedder bert-base-uncased \
+  --embedder-checkpoint ./outputs/embedder/lora_weights.safetensors \
+  --format json
+```
+
+**RAG Command Options:**
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--generator` | LLM for generation (Qwen2, LLaMA, Mistral) | `Qwen/Qwen2.5-0.5B` |
+| `--embedder` | Encoder model for retrieval | `bert-base-uncased` |
+| `--retriever` | Retriever type: dense, sparse, hybrid | `hybrid` |
+| `--top-k` | Number of documents to retrieve | `5` |
+| `--temperature` | Sampling temperature (0 = greedy) | `0.7` |
+| `--max-tokens` | Maximum tokens to generate | `512` |
+| `--template` | Prompt template: default, concise, detailed | `default` |
+| `--format` | Output format: text, json | `text` |
+| `--dtype` | Model dtype: f32, f16, bf16 | `f16` |
+
+### 4. Train a Model (Web UI)
 
 1. **Open Training Interface:** http://localhost:5173/training
 2. Select model (e.g., `BAAI/bge-base-en-v1.5`)
@@ -289,7 +367,7 @@ rrl query \
 5. Click "Start Training"
 6. Watch live metrics and logs in real-time
 
-### 4. Train a Model (CLI)
+### 5. Train a Model (CLI)
 
 ```bash
 rrl train \
@@ -302,7 +380,7 @@ rrl train \
   --learning-rate 5e-5
 ```
 
-### 5. Evaluate Model
+### 6. Evaluate Model
 
 **Web UI:**
 1. Go to http://localhost:5173/evaluation
@@ -372,7 +450,7 @@ rrl eval-mc \
 - [x] Integrate generation metrics (F1, EM, ROUGE-L, Perplexity)
 - [x] Multi-adapter support
 
-### 🆕 Week 8.5: Web Interface & API (NEW - COMPLETED)
+### ✅ Week 8.5: Web Interface & API (COMPLETED)
 - [x] FastAPI backend with REST API
 - [x] React frontend with 7 pages
 - [x] Live training dashboard with WebSocket
@@ -380,17 +458,19 @@ rrl eval-mc \
 - [x] Model browser and evaluation dashboard
 - [x] Data upload with drag-and-drop
 
-### 🚧 Week 9: Serving & Visualization (IN PROGRESS)
-- [ ] Develop `rrl serve` — Axum-based inference server
-- [x] Web-based dashboard (completed via React UI)
-- [ ] Terminal dashboard (ratatui) for monitoring
-- [ ] Hot-reloadable indexes
+### ✅ Week 9: RAG Pipeline & LLM Integration (COMPLETED)
+- [x] Implement `rrl rag` command with full RAG pipeline
+- [x] Integrate decoder models: **Qwen2**, **LLaMA**, **Mistral**
+- [x] Web-based dashboard (React UI - primary interface)
+- [x] Transitioned from Terminal UI (ratatui) to Web UI
+- [x] Support for fine-tuned checkpoints in RAG pipeline
 
-### 📋 Week 10: Final Integration & Documentation (PLANNED)
-- [ ] Complete full end-to-end tests
-- [ ] Profile latency and memory footprint
-- [ ] Complete final report
-- [ ] Prepare for final demo
+### ✅ Week 10: Final Integration & Documentation (COMPLETED)
+- [x] Complete full end-to-end RAG workflow
+- [x] MS MARCO evaluation support
+- [x] Multi-architecture model loading (encoder + decoder)
+- [x] Comprehensive CLI with all commands
+- [x] Documentation and README updates
 
 ---
 
@@ -463,9 +543,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## ⚡ Quick Links
 
+- **GitHub:** https://github.com/kevinlin29/ECE1724
 - **Web UI:** http://localhost:5173
 - **API Docs:** http://localhost:8000/docs
-- **GitHub:** https://github.com/yourusername/rrl
 - **Original Proposal:** [Proposal.md](Proposal.md)
 
 ---
