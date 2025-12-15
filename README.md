@@ -399,26 +399,6 @@ rrl eval-mc \
 
 ---
 
-## 📊 Performance Benchmarks
-
-### Training Speed (samples/sec on V100)
-| Model | Base | +Flash Attention | +Mixed Precision | +Distributed (4 GPU) |
-|-------|------|-----------------|------------------|---------------------|
-| BERT-base | 220 | 770 | 1155 | 3696 |
-| RoBERTa-large | 180 | 630 | 945 | 3024 |
-| GPT-2 (1.5B) | 45 | 158 | 237 | 758 |
-| LLaMA-7B (QLoRA) | 12 | 42 | 63 | 202 |
-
-### Memory Usage (GB on single GPU)
-| Model | Full FP32 | LoRA | QLoRA | +Grad Checkpoint |
-|-------|-----------|------|-------|-----------------|
-| BERT-base | 4.5 | 2.1 | 1.0 | 0.6 |
-| BERT-large | 13.5 | 3.8 | 1.9 | 1.1 |
-| LLaMA-7B | OOM | OOM | 12.5 | 7.5 |
-| LLaMA-13B | OOM | OOM | 22.0 | 13.2 |
-
----
-
 ## 🗓️ Development Timeline
 
 ### ✅ Week 1–2: System Architecture & Data Pipeline (COMPLETED)
