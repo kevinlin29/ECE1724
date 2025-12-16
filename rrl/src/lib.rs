@@ -35,7 +35,6 @@ pub mod evaluation;
 pub mod server;
 pub mod cli;
 pub mod utils;
-pub mod tui;
 
 // Training module (requires candle)
 #[cfg(feature = "training")]
